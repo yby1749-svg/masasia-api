@@ -773,4 +773,344 @@ describe('API Endpoints', () => {
       });
     });
   });
+
+  describe('Admin Routes', () => {
+    let adminToken: string;
+    let customerToken: string;
+    let providerId: string;
+    let customerId: string;
+    let createdServiceId: string;
+    let createdPromotionId: string;
+
+    beforeAll(async () => {
+      await prisma.refreshToken.deleteMany({});
+
+      // Login as admin
+      const adminRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+      adminToken = adminRes.body.data.accessToken;
+
+      // Login as customer (for access control tests)
+      const customerRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'customer@test.com', password: 'customer123!' });
+      customerToken = customerRes.body.data.accessToken;
+      customerId = customerRes.body.data.user.id;
+
+      // Get provider ID
+      const provider = await prisma.provider.findFirst({
+        where: { user: { email: 'provider@test.com' } },
+      });
+      providerId = provider!.id;
+    });
+
+    afterAll(async () => {
+      // Clean up created resources
+      if (createdServiceId) {
+        await prisma.service.deleteMany({ where: { id: createdServiceId } });
+      }
+      if (createdPromotionId) {
+        await prisma.promotion.deleteMany({ where: { id: createdPromotionId } });
+      }
+    });
+
+    describe('Access Control', () => {
+      it('should reject unauthenticated requests', async () => {
+        const res = await request(app).get('/api/v1/admin/dashboard');
+        expect(res.status).toBe(401);
+      });
+
+      it('should reject non-admin users', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/dashboard')
+          .set('Authorization', `Bearer ${customerToken}`);
+        expect(res.status).toBe(403);
+      });
+    });
+
+    describe('GET /api/v1/admin/dashboard', () => {
+      it('should return dashboard stats', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/dashboard')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('todayBookings');
+        expect(res.body.data).toHaveProperty('totalProviders');
+        expect(res.body.data).toHaveProperty('pendingProviders');
+        expect(res.body.data).toHaveProperty('openReports');
+      });
+    });
+
+    describe('Provider Management', () => {
+      it('should list all providers', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/providers')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('should filter providers by status', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/providers?status=APPROVED')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+
+      it('should get provider details', async () => {
+        const res = await request(app)
+          .get(`/api/v1/admin/providers/${providerId}`)
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('id', providerId);
+      });
+
+      it('should suspend a provider', async () => {
+        const res = await request(app)
+          .post(`/api/v1/admin/providers/${providerId}/suspend`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ reason: 'Test suspension' });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.message).toContain('suspended');
+      });
+
+      it('should unsuspend a provider', async () => {
+        const res = await request(app)
+          .post(`/api/v1/admin/providers/${providerId}/unsuspend`)
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.message).toContain('unsuspended');
+      });
+    });
+
+    describe('Bookings Management', () => {
+      it('should list all bookings', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/bookings')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('should filter bookings by status', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/bookings?status=COMPLETED')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+    });
+
+    describe('Users Management', () => {
+      it('should list all users', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/users')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('should filter users by role', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/users?role=CUSTOMER')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+
+      it('should get user details', async () => {
+        const res = await request(app)
+          .get(`/api/v1/admin/users/${customerId}`)
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('id', customerId);
+      });
+    });
+
+    describe('Services Management', () => {
+      it('should list all services', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/services')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('should create a new service', async () => {
+        const res = await request(app)
+          .post('/api/v1/admin/services')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name: 'Test Massage',
+            nameKo: '테스트 마사지',
+            description: 'A test massage service',
+            category: 'COMBINATION', // Valid enum value
+            baseDuration: 60,
+            basePrice: 500,
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('id');
+        expect(res.body.data.name).toBe('Test Massage');
+
+        createdServiceId = res.body.data.id;
+      });
+
+      it('should update a service', async () => {
+        if (!createdServiceId) return;
+
+        const res = await request(app)
+          .patch(`/api/v1/admin/services/${createdServiceId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            basePrice: 600,
+            description: 'Updated description',
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data.basePrice).toBe(600);
+      });
+
+      it('should delete a service', async () => {
+        if (!createdServiceId) return;
+
+        const res = await request(app)
+          .delete(`/api/v1/admin/services/${createdServiceId}`)
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(204);
+        createdServiceId = ''; // Mark as deleted
+      });
+    });
+
+    describe('Promotions Management', () => {
+      it('should list all promotions', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/promotions')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('should create a new promotion', async () => {
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 30);
+
+        const res = await request(app)
+          .post('/api/v1/admin/promotions')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            code: 'TESTPROMO50',
+            name: 'Test Promotion 50% Off',
+            discountType: 'PERCENTAGE',
+            discountValue: 50,
+            startsAt: startDate.toISOString(), // Correct field name
+            endsAt: endDate.toISOString(),     // Correct field name
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('id');
+        expect(res.body.data.code).toBe('TESTPROMO50');
+
+        createdPromotionId = res.body.data.id;
+      });
+
+      it('should update a promotion', async () => {
+        if (!createdPromotionId) return;
+
+        const res = await request(app)
+          .patch(`/api/v1/admin/promotions/${createdPromotionId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name: 'Updated Promotion Name',
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data.name).toBe('Updated Promotion Name');
+      });
+
+      it('should delete a promotion', async () => {
+        if (!createdPromotionId) return;
+
+        const res = await request(app)
+          .delete(`/api/v1/admin/promotions/${createdPromotionId}`)
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(204);
+        createdPromotionId = ''; // Mark as deleted
+      });
+    });
+
+    describe('Payouts', () => {
+      it('should list all payouts', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/payouts')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('should filter payouts by status', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/payouts?status=PENDING')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+    });
+
+    describe('Reports', () => {
+      it('should list all reports', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/reports')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('should filter reports by status', async () => {
+        const res = await request(app)
+          .get('/api/v1/admin/reports?status=PENDING')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+    });
+  });
 });
