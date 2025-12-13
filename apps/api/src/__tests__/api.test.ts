@@ -2231,4 +2231,204 @@ describe('API Endpoints', () => {
       });
     });
   });
+
+  // ============================================================================
+  // REPORT ROUTES
+  // ============================================================================
+
+  describe('Report Routes', () => {
+    const customerEmail = 'customer@test.com';
+    const customerPassword = 'customer123!';
+    const providerEmail = 'provider@test.com';
+    let customerToken: string;
+    let customerId: string;
+    let providerId: string;
+    let createdReportId: string;
+
+    beforeAll(async () => {
+      // Login as customer
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: customerEmail, password: customerPassword });
+      customerToken = loginRes.body.data.accessToken;
+      customerId = loginRes.body.data.user.id;
+
+      // Get provider ID for reporting
+      const providersRes = await request(app).get('/api/v1/providers');
+      if (providersRes.body.data && providersRes.body.data.length > 0) {
+        providerId = providersRes.body.data[0].userId;
+      }
+    });
+
+    afterAll(async () => {
+      // Clean up test reports
+      if (createdReportId) {
+        await prisma.report.deleteMany({
+          where: { reporterId: customerId },
+        });
+      }
+    });
+
+    describe('POST /api/v1/reports', () => {
+      it('should require authentication', async () => {
+        const res = await request(app)
+          .post('/api/v1/reports')
+          .send({
+            reportedId: 'some-user-id',
+            type: 'OTHER',
+            description: 'Test report',
+          });
+
+        expect(res.status).toBe(401);
+      });
+
+      it('should create a report', async () => {
+        const res = await request(app)
+          .post('/api/v1/reports')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            reportedId: providerId,
+            type: 'SERVICE_QUALITY',
+            description: 'Test report for service quality issues',
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('id');
+        expect(res.body.data).toHaveProperty('type', 'SERVICE_QUALITY');
+        expect(res.body.data).toHaveProperty('description');
+        expect(res.body.data).toHaveProperty('status', 'PENDING');
+
+        createdReportId = res.body.data.id;
+      });
+
+      it('should create report with booking reference', async () => {
+        // First create a booking to reference
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(14, 0, 0, 0);
+
+        const providersRes = await request(app).get('/api/v1/providers');
+        const testProviderId = providersRes.body.data[0].id;
+
+        const bookingRes = await request(app)
+          .post('/api/v1/bookings')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            providerId: testProviderId,
+            serviceId: 'svc-thai',
+            duration: 60,
+            scheduledAt: tomorrow.toISOString(),
+            addressText: 'Test Address for Report',
+            latitude: 14.5586,
+            longitude: 121.0178,
+          });
+
+        if (bookingRes.status === 201) {
+          const bookingId = bookingRes.body.data.booking.id;
+
+          const res = await request(app)
+            .post('/api/v1/reports')
+            .set('Authorization', `Bearer ${customerToken}`)
+            .send({
+              reportedId: providerId,
+              bookingId: bookingId,
+              type: 'LATE_ARRIVAL',
+              description: 'Provider arrived 30 minutes late',
+            });
+
+          expect(res.status).toBe(201);
+          expect(res.body.data).toHaveProperty('bookingId', bookingId);
+        }
+      });
+
+      it('should create report with different types', async () => {
+        const reportTypes = ['HARASSMENT', 'FRAUD', 'NO_SHOW', 'UNPROFESSIONAL', 'OTHER'];
+
+        for (const type of reportTypes) {
+          const res = await request(app)
+            .post('/api/v1/reports')
+            .set('Authorization', `Bearer ${customerToken}`)
+            .send({
+              reportedId: providerId,
+              type: type,
+              description: `Test report for ${type}`,
+            });
+
+          expect(res.status).toBe(201);
+          expect(res.body.data.type).toBe(type);
+        }
+      });
+    });
+
+    describe('POST /api/v1/reports/upload-evidence', () => {
+      it('should require authentication', async () => {
+        const res = await request(app)
+          .post('/api/v1/reports/upload-evidence');
+
+        expect(res.status).toBe(401);
+      });
+
+      it('should return placeholder URL for evidence upload', async () => {
+        const res = await request(app)
+          .post('/api/v1/reports/upload-evidence')
+          .set('Authorization', `Bearer ${customerToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body).toHaveProperty('url');
+      });
+    });
+
+    describe('GET /api/v1/reports/me', () => {
+      it('should require authentication', async () => {
+        const res = await request(app)
+          .get('/api/v1/reports/me');
+
+        expect(res.status).toBe(401);
+      });
+
+      it('should return user reports', async () => {
+        const res = await request(app)
+          .get('/api/v1/reports/me')
+          .set('Authorization', `Bearer ${customerToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body).toHaveProperty('data');
+        expect(Array.isArray(res.body.data)).toBe(true);
+      });
+
+      it('should return reports in descending order by date', async () => {
+        const res = await request(app)
+          .get('/api/v1/reports/me')
+          .set('Authorization', `Bearer ${customerToken}`);
+
+        expect(res.status).toBe(200);
+
+        if (res.body.data.length >= 2) {
+          const firstDate = new Date(res.body.data[0].createdAt);
+          const secondDate = new Date(res.body.data[1].createdAt);
+          expect(firstDate.getTime()).toBeGreaterThanOrEqual(secondDate.getTime());
+        }
+      });
+
+      it('should include report details', async () => {
+        const res = await request(app)
+          .get('/api/v1/reports/me')
+          .set('Authorization', `Bearer ${customerToken}`);
+
+        expect(res.status).toBe(200);
+
+        if (res.body.data.length > 0) {
+          const report = res.body.data[0];
+          expect(report).toHaveProperty('id');
+          expect(report).toHaveProperty('type');
+          expect(report).toHaveProperty('description');
+          expect(report).toHaveProperty('status');
+          expect(report).toHaveProperty('createdAt');
+        }
+      });
+    });
+  });
 });
