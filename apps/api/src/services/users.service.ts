@@ -2,9 +2,32 @@
 // Users Service
 // ============================================================================
 
+import { Prisma, Gender } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import bcrypt from 'bcryptjs';
+
+interface ProfileData {
+  firstName?: string;
+  lastName?: string;
+  gender?: Gender;
+  dateOfBirth?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+  emergencyRelation?: string;
+}
+
+interface AddressData {
+  label: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  province?: string;
+  postalCode?: string;
+  latitude: number;
+  longitude: number;
+  isDefault?: boolean;
+}
 
 class UserService {
   async getProfile(userId: string) {
@@ -21,7 +44,7 @@ class UserService {
     return user;
   }
 
-  async updateProfile(userId: string, data: any) {
+  async updateProfile(userId: string, data: ProfileData) {
     return prisma.user.update({
       where: { id: userId },
       data: {
@@ -58,14 +81,14 @@ class UserService {
     return prisma.address.findMany({ where: { userId }, orderBy: { isDefault: 'desc' } });
   }
 
-  async addAddress(userId: string, data: any) {
+  async addAddress(userId: string, data: AddressData) {
     if (data.isDefault) {
       await prisma.address.updateMany({ where: { userId }, data: { isDefault: false } });
     }
     return prisma.address.create({ data: { ...data, userId } });
   }
 
-  async updateAddress(userId: string, addressId: string, data: any) {
+  async updateAddress(userId: string, addressId: string, data: Prisma.AddressUpdateInput) {
     const address = await prisma.address.findFirst({ where: { id: addressId, userId } });
     if (!address) throw new AppError('Address not found', 404);
     

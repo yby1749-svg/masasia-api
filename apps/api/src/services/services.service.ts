@@ -2,13 +2,18 @@
 // Services Service
 // ============================================================================
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 
+interface ServiceQuery {
+  category?: string;
+}
+
 class ServiceService {
-  async listServices(query: any) {
-    const where: any = { isActive: true };
-    if (query.category) where.category = query.category;
+  async listServices(query: ServiceQuery) {
+    const where: Prisma.ServiceWhereInput = { isActive: true };
+    if (query.category) where.category = query.category as Prisma.EnumServiceCategoryFilter;
     return prisma.service.findMany({ where, orderBy: { sortOrder: 'asc' } });
   }
 

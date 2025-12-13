@@ -153,10 +153,9 @@ class AuthService {
   // Refresh token
   async refreshToken(refreshToken: string) {
     // Verify token
-    let payload: TokenPayload;
     try {
-      payload = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET) as TokenPayload;
-    } catch (error) {
+      jwt.verify(refreshToken, this.JWT_REFRESH_SECRET) as TokenPayload;
+    } catch (_error) {
       throw new AppError('Invalid refresh token', 401);
     }
 

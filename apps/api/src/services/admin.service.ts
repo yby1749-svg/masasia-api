@@ -2,8 +2,28 @@
 // Admin Service - Placeholder
 // ============================================================================
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
+
+interface ListQuery {
+  status?: string;
+  severity?: string;
+}
+
+interface SuspendData {
+  until?: string;
+  reason?: string;
+}
+
+interface PayoutData {
+  referenceNumber?: string;
+}
+
+interface ResolveData {
+  resolution?: string;
+  actionTaken?: string;
+}
 
 class AdminService {
   async getDashboard() {
@@ -16,9 +36,9 @@ class AdminService {
     return { todayBookings, totalProviders, pendingProviders, openReports };
   }
 
-  async listProviders(query: any) {
-    const where: any = {};
-    if (query.status) where.status = query.status;
+  async listProviders(query: ListQuery) {
+    const where: Prisma.ProviderWhereInput = {};
+    if (query.status) where.status = query.status as Prisma.EnumProviderStatusFilter;
     const providers = await prisma.provider.findMany({ where, include: { user: true }, take: 50 });
     return { data: providers, pagination: { page: 1, limit: 50, total: providers.length } };
   }
@@ -37,7 +57,7 @@ class AdminService {
     await prisma.provider.update({ where: { id: providerId }, data: { status: 'REJECTED', rejectedAt: new Date(), rejectedReason: reason } });
   }
 
-  async suspendProvider(providerId: string, data: any) {
+  async suspendProvider(providerId: string, data: SuspendData) {
     await prisma.provider.update({ where: { id: providerId }, data: { status: 'SUSPENDED', suspendedAt: new Date(), suspendedUntil: data.until ? new Date(data.until) : null, suspendedReason: data.reason } });
   }
 
@@ -45,7 +65,7 @@ class AdminService {
     await prisma.provider.update({ where: { id: providerId }, data: { status: 'APPROVED', suspendedAt: null, suspendedUntil: null, suspendedReason: null } });
   }
 
-  async listBookings(query: any) {
+  async listBookings(_query: ListQuery) {
     const bookings = await prisma.booking.findMany({ include: { customer: true, provider: { include: { user: true } }, service: true }, orderBy: { createdAt: 'desc' }, take: 50 });
     return { data: bookings, pagination: { page: 1, limit: 50, total: bookings.length } };
   }
@@ -56,14 +76,14 @@ class AdminService {
     return booking;
   }
 
-  async listPayouts(query: any) {
-    const where: any = {};
-    if (query.status) where.status = query.status;
+  async listPayouts(query: ListQuery) {
+    const where: Prisma.PayoutWhereInput = {};
+    if (query.status) where.status = query.status as Prisma.EnumPayoutStatusFilter;
     const payouts = await prisma.payout.findMany({ where, include: { provider: { include: { user: true } } }, orderBy: { createdAt: 'desc' }, take: 50 });
     return { data: payouts, pagination: { page: 1, limit: 50, total: payouts.length } };
   }
 
-  async processPayout(payoutId: string, adminId: string, data: any) {
+  async processPayout(payoutId: string, adminId: string, data: PayoutData) {
     await prisma.payout.update({ where: { id: payoutId }, data: { status: 'COMPLETED', processedAt: new Date(), processedBy: adminId, referenceNumber: data.referenceNumber } });
   }
 
@@ -74,10 +94,10 @@ class AdminService {
     await prisma.provider.update({ where: { id: payout.providerId }, data: { balance: { increment: payout.amount } } });
   }
 
-  async listReports(query: any) {
-    const where: any = {};
-    if (query.status) where.status = query.status;
-    if (query.severity) where.severity = query.severity;
+  async listReports(query: ListQuery) {
+    const where: Prisma.ReportWhereInput = {};
+    if (query.status) where.status = query.status as Prisma.EnumReportStatusFilter;
+    if (query.severity) where.severity = query.severity as Prisma.EnumReportSeverityFilter;
     const reports = await prisma.report.findMany({ where, include: { reporter: true, reported: true, booking: true }, orderBy: { createdAt: 'desc' }, take: 50 });
     return { data: reports, pagination: { page: 1, limit: 50, total: reports.length } };
   }
@@ -92,7 +112,7 @@ class AdminService {
     await prisma.report.update({ where: { id: reportId }, data: { assignedTo: adminId, assignedAt: new Date(), status: 'INVESTIGATING' } });
   }
 
-  async resolveReport(reportId: string, adminId: string, data: any) {
+  async resolveReport(reportId: string, adminId: string, data: ResolveData) {
     await prisma.report.update({ where: { id: reportId }, data: { status: 'RESOLVED', resolvedAt: new Date(), resolvedBy: adminId, resolution: data.resolution, actionTaken: data.actionTaken } });
   }
 
@@ -100,7 +120,7 @@ class AdminService {
     await prisma.report.update({ where: { id: reportId }, data: { status: 'DISMISSED', resolvedAt: new Date(), resolvedBy: adminId, resolution: reason } });
   }
 
-  async listUsers(query: any) {
+  async listUsers(_query: ListQuery) {
     const users = await prisma.user.findMany({ take: 50, orderBy: { createdAt: 'desc' } });
     return { data: users, pagination: { page: 1, limit: 50, total: users.length } };
   }
@@ -111,17 +131,17 @@ class AdminService {
     return user;
   }
 
-  async suspendUser(userId: string, data: any) {
+  async suspendUser(userId: string, _data: SuspendData) {
     await prisma.user.update({ where: { id: userId }, data: { status: 'SUSPENDED' } });
   }
 
   async listServices() { return prisma.service.findMany(); }
-  async createService(data: any) { return prisma.service.create({ data }); }
-  async updateService(serviceId: string, data: any) { return prisma.service.update({ where: { id: serviceId }, data }); }
+  async createService(data: Prisma.ServiceCreateInput) { return prisma.service.create({ data }); }
+  async updateService(serviceId: string, data: Prisma.ServiceUpdateInput) { return prisma.service.update({ where: { id: serviceId }, data }); }
   async deleteService(serviceId: string) { await prisma.service.delete({ where: { id: serviceId } }); }
   async listPromotions() { return prisma.promotion.findMany(); }
-  async createPromotion(data: any) { return prisma.promotion.create({ data }); }
-  async updatePromotion(promotionId: string, data: any) { return prisma.promotion.update({ where: { id: promotionId }, data }); }
+  async createPromotion(data: Prisma.PromotionCreateInput) { return prisma.promotion.create({ data }); }
+  async updatePromotion(promotionId: string, data: Prisma.PromotionUpdateInput) { return prisma.promotion.update({ where: { id: promotionId }, data }); }
   async deletePromotion(promotionId: string) { await prisma.promotion.delete({ where: { id: promotionId } }); }
 }
 

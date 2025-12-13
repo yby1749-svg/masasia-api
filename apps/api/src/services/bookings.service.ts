@@ -2,13 +2,36 @@
 // Bookings Service - Placeholder
 // ============================================================================
 
+import { Prisma, BookingStatus } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { locationCache } from '../config/redis.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { v4 as uuidv4 } from 'uuid';
 
+interface BookingQuery {
+  limit?: string;
+}
+
+interface CreateBookingData {
+  providerId: string;
+  serviceId: string;
+  duration: number;
+  scheduledAt: string;
+  addressId?: string;
+  addressText: string;
+  addressNotes?: string;
+  latitude: number;
+  longitude: number;
+  travelFee?: number;
+  customerNotes?: string;
+}
+
+interface SOSData {
+  message?: string;
+}
+
 class BookingService {
-  async listBookings(userId: string, role: string, query: any) {
+  async listBookings(userId: string, role: string, query: BookingQuery) {
     const where = role === 'provider' 
       ? { provider: { userId } }
       : { customerId: userId };
@@ -17,12 +40,12 @@ class BookingService {
       where,
       include: { service: true, provider: { include: { user: true } } },
       orderBy: { createdAt: 'desc' },
-      take: parseInt(query.limit) || 20,
+      take: parseInt(query.limit || '20'),
     });
     return { data: bookings, pagination: { page: 1, limit: 20, total: bookings.length } };
   }
 
-  async createBooking(customerId: string, data: any) {
+  async createBooking(customerId: string, data: CreateBookingData) {
     const provider = await prisma.provider.findUnique({
       where: { id: data.providerId },
       include: { services: { where: { serviceId: data.serviceId } } },
@@ -123,7 +146,7 @@ class BookingService {
     const booking = await prisma.booking.findFirst({ where: { id: bookingId, providerId: provider.id } });
     if (!booking) throw new AppError('Booking not found', 404);
     
-    const updateData: any = { status };
+    const updateData: Prisma.BookingUpdateInput = { status: status as BookingStatus };
     if (status === 'PROVIDER_EN_ROUTE') updateData.enRouteAt = new Date();
     if (status === 'PROVIDER_ARRIVED') updateData.arrivedAt = new Date();
     if (status === 'IN_PROGRESS') updateData.startedAt = new Date();
@@ -164,7 +187,7 @@ class BookingService {
     });
   }
 
-  async triggerSOS(userId: string, bookingId: string, data: any) {
+  async triggerSOS(userId: string, bookingId: string, data: SOSData) {
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new AppError('Booking not found', 404);
     

@@ -120,7 +120,7 @@ export const optionalAuth = async (
     }
 
     next();
-  } catch (error) {
+  } catch (_error) {
     // Ignore errors for optional auth
     next();
   }

@@ -5,8 +5,21 @@
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 
+interface WebhookBody {
+  data: {
+    attributes: {
+      type: string;
+      data: {
+        attributes: {
+          payment_intent_id: string;
+        };
+      };
+    };
+  };
+}
+
 class PaymentService {
-  async handleWebhook(body: any, signature: string) {
+  async handleWebhook(body: WebhookBody, _signature: string) {
     // TODO: Verify PayMongo webhook signature
     const event = body.data;
     

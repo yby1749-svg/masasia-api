@@ -2,17 +2,51 @@
 // Providers Service - Placeholder
 // ============================================================================
 
+import { Prisma, PayoutMethod } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { locationCache } from '../config/redis.js';
 import { AppError } from '../middleware/errorHandler.js';
 
+interface ProviderQuery {
+  limit?: string;
+  page?: string;
+}
+
+interface RegisterData {
+  displayName: string;
+  bio?: string;
+  serviceAreas?: string[];
+}
+
+interface ServiceData {
+  serviceId: string;
+  price60: number;
+  price90?: number;
+  price120?: number;
+  isActive?: boolean;
+}
+
+interface AvailabilityData {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+interface BankAccountData {
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
+  gcashNumber?: string;
+  paymayaNumber?: string;
+}
+
 class ProviderService {
-  async listProviders(query: any) {
+  async listProviders(query: ProviderQuery) {
     const providers = await prisma.provider.findMany({
       where: { status: 'APPROVED' },
       include: { user: { select: { firstName: true, lastName: true, avatarUrl: true, gender: true } } },
-      take: parseInt(query.limit) || 20,
-      skip: ((parseInt(query.page) || 1) - 1) * (parseInt(query.limit) || 20),
+      take: parseInt(query.limit || '20'),
+      skip: ((parseInt(query.page || '1')) - 1) * (parseInt(query.limit || '20')),
     });
     return { data: providers, pagination: { page: 1, limit: 20, total: providers.length } };
   }
@@ -29,12 +63,12 @@ class ProviderService {
     return provider;
   }
 
-  async getProviderReviews(providerId: string, query: any) {
+  async getProviderReviews(providerId: string, query: ProviderQuery) {
     const reviews = await prisma.review.findMany({
       where: { targetId: providerId },
       include: { author: { select: { firstName: true, avatarUrl: true } } },
       orderBy: { createdAt: 'desc' },
-      take: parseInt(query.limit) || 10,
+      take: parseInt(query.limit || '10'),
     });
     return { data: reviews, pagination: { page: 1, limit: 10, total: reviews.length } };
   }
@@ -44,7 +78,7 @@ class ProviderService {
     return { date, slots: [{ time: '09:00', available: true }, { time: '10:00', available: true }] };
   }
 
-  async registerAsProvider(userId: string, data: any) {
+  async registerAsProvider(userId: string, data: RegisterData) {
     const existing = await prisma.provider.findUnique({ where: { userId } });
     if (existing) throw new AppError('Already registered as provider', 400);
     
@@ -60,7 +94,7 @@ class ProviderService {
     return provider;
   }
 
-  async updateMyProfile(userId: string, data: any) {
+  async updateMyProfile(userId: string, data: Prisma.ProviderUpdateInput) {
     return prisma.provider.update({ where: { userId }, data });
   }
 
@@ -76,7 +110,7 @@ class ProviderService {
     return prisma.providerService.findMany({ where: { providerId: provider.id }, include: { service: true } });
   }
 
-  async setService(userId: string, data: any) {
+  async setService(userId: string, data: ServiceData) {
     const provider = await prisma.provider.findUnique({ where: { userId } });
     if (!provider) throw new AppError('Provider not found', 404);
     return prisma.providerService.upsert({
@@ -98,7 +132,7 @@ class ProviderService {
     return prisma.providerAvailability.findMany({ where: { providerId: provider.id } });
   }
 
-  async setMyAvailability(userId: string, data: any[]) {
+  async setMyAvailability(userId: string, data: AvailabilityData[]) {
     const provider = await prisma.provider.findUnique({ where: { userId } });
     if (!provider) throw new AppError('Provider not found', 404);
     await prisma.providerAvailability.deleteMany({ where: { providerId: provider.id } });
@@ -107,8 +141,8 @@ class ProviderService {
     });
   }
 
-  async updateOnlineStatus(userId: string, status: string) {
-    await prisma.provider.update({ where: { userId }, data: { onlineStatus: status as any } });
+  async updateOnlineStatus(userId: string, status: 'ONLINE' | 'OFFLINE' | 'BUSY') {
+    await prisma.provider.update({ where: { userId }, data: { onlineStatus: status } });
   }
 
   async updateLocation(userId: string, data: { latitude: number; longitude: number }) {
@@ -121,11 +155,11 @@ class ProviderService {
     });
   }
 
-  async updateBankAccount(userId: string, data: any) {
+  async updateBankAccount(userId: string, data: BankAccountData) {
     await prisma.provider.update({ where: { userId }, data });
   }
 
-  async getEarnings(userId: string, query: any) {
+  async getEarnings(userId: string, _query: ProviderQuery) {
     const provider = await prisma.provider.findUnique({ where: { userId } });
     if (!provider) throw new AppError('Provider not found', 404);
     return prisma.booking.findMany({
@@ -159,7 +193,7 @@ class ProviderService {
         amount: data.amount,
         fee: 0,
         netAmount: data.amount,
-        method: data.method as any,
+        method: data.method as PayoutMethod,
         accountInfo: provider.gcashNumber || provider.bankAccountNumber || '',
       },
     });

@@ -41,7 +41,7 @@ export function initializeSocket(server: HttpServer) {
       socket.userId = decoded.userId;
       socket.role = decoded.role;
       next();
-    } catch (error) {
+    } catch (_error) {
       next(new Error('Invalid token'));
     }
   });
