@@ -2248,6 +2248,190 @@ describe('API Endpoints', () => {
         expect(res.status).toBe(400);
       });
     });
+
+    describe('Auth Service Edge Cases', () => {
+      it('should reject login for suspended account', async () => {
+        // Create a user and then suspend them
+        const testEmail = `suspended-${Date.now()}@test.com`;
+        const testPhone = `+63${Date.now().toString().slice(-10)}`;
+
+        // Register user
+        await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: testEmail,
+            phone: testPhone,
+            password: 'testpass123!',
+            firstName: 'Suspended',
+            lastName: 'User',
+          });
+
+        // Suspend the user directly in DB
+        await prisma.user.update({
+          where: { email: testEmail },
+          data: { status: 'SUSPENDED' },
+        });
+
+        // Try to login - should fail with inactive account
+        const res = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: testEmail,
+            password: 'testpass123!',
+          });
+
+        expect(res.status).toBe(401);
+        expect(res.body.error).toContain('not active');
+
+        // Clean up
+        await prisma.user.delete({ where: { email: testEmail } });
+      });
+
+      it('should handle expired refresh token', async () => {
+        // Login to get a valid token
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: 'customer@test.com',
+            password: 'customer123!',
+          });
+
+        const refreshToken = loginRes.body.data.refreshToken;
+
+        // Manually expire the refresh token in the DB
+        await prisma.refreshToken.updateMany({
+          where: { token: refreshToken },
+          data: { expiresAt: new Date(Date.now() - 1000) }, // Set to past
+        });
+
+        // Try to use expired refresh token
+        const res = await request(app)
+          .post('/api/v1/auth/refresh')
+          .send({ refreshToken });
+
+        expect(res.status).toBe(401);
+        expect(res.body.error).toContain('expired');
+      });
+
+      it('should complete password reset flow with valid token', async () => {
+        // Import Redis to set up the reset token
+        const { redis } = await import('../config/redis.js');
+
+        // Create a test user
+        const testEmail = `reset-${Date.now()}@test.com`;
+        const testPhone = `+63${Date.now().toString().slice(-10)}`;
+
+        const registerRes = await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: testEmail,
+            phone: testPhone,
+            password: 'oldpassword123!',
+            firstName: 'Reset',
+            lastName: 'Test',
+          });
+
+        const userId = registerRes.body.data.userId;
+
+        // Manually set a password reset token in Redis
+        const resetToken = `test-reset-token-${Date.now()}`;
+        await redis.set(`password-reset:${resetToken}`, userId, 'EX', 3600);
+
+        // Reset password using the token
+        const res = await request(app)
+          .post('/api/v1/auth/reset-password')
+          .send({
+            token: resetToken,
+            password: 'newpassword123!',
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+
+        // Activate user so we can test login with new password
+        await prisma.user.update({
+          where: { id: userId },
+          data: { status: 'ACTIVE' },
+        });
+
+        // Verify new password works
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: testEmail,
+            password: 'newpassword123!',
+          });
+
+        expect(loginRes.status).toBe(200);
+
+        // Clean up
+        await prisma.refreshToken.deleteMany({ where: { userId } });
+        await prisma.user.delete({ where: { id: userId } });
+      });
+
+      it('should verify phone OTP successfully', async () => {
+        const { redis } = await import('../config/redis.js');
+
+        // Login
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'customer@test.com', password: 'customer123!' });
+        const token = loginRes.body.data.accessToken;
+        const userId = loginRes.body.data.user.id;
+
+        // Set up a valid OTP in Redis
+        const validOtp = '123456';
+        await redis.set(`phone-otp:${userId}`, validOtp, 'EX', 300);
+
+        // Verify the OTP
+        const res = await request(app)
+          .post('/api/v1/auth/verify-phone/confirm')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ otp: validOtp });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+
+      it('should verify email successfully', async () => {
+        const { redis } = await import('../config/redis.js');
+
+        // Create a test user
+        const testEmail = `emailverify-${Date.now()}@test.com`;
+        const testPhone = `+63${Date.now().toString().slice(-10)}`;
+
+        const registerRes = await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: testEmail,
+            phone: testPhone,
+            password: 'testpass123!',
+            firstName: 'Email',
+            lastName: 'Verify',
+          });
+
+        const userId = registerRes.body.data.userId;
+
+        // Set up an email verification token in Redis
+        const verifyToken = `email-verify-token-${Date.now()}`;
+        await redis.set(`email-verify:${verifyToken}`, userId, 'EX', 86400);
+
+        // Verify the email
+        const res = await request(app)
+          .post('/api/v1/auth/verify-email/confirm')
+          .send({ token: verifyToken });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+
+        // Verify user's emailVerified flag is set
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        expect(user?.emailVerified).toBe(true);
+
+        // Clean up
+        await prisma.user.delete({ where: { id: userId } });
+      });
+    });
   });
 
   // ============================================================================
@@ -2589,6 +2773,47 @@ describe('API Endpoints', () => {
           expect(res.status).toBe(400);
           expect(res.body.error).toContain('Minimum');
         });
+
+        it('should successfully request payout when balance sufficient', async () => {
+          // Get provider and set balance for test
+          const provider = await prisma.provider.findFirst({
+            where: { user: { email: 'provider@test.com' } },
+          });
+
+          // Store original balance
+          const originalBalance = provider!.balance;
+
+          // Set balance to allow payout
+          await prisma.provider.update({
+            where: { id: provider!.id },
+            data: { balance: 1000, gcashNumber: '+639123456789' },
+          });
+
+          // Request payout
+          const res = await request(app)
+            .post('/api/v1/providers/me/payouts')
+            .set('Authorization', `Bearer ${providerToken}`)
+            .send({ amount: 500, method: 'GCASH' });
+
+          expect(res.status).toBe(201);
+          expect(res.body).toHaveProperty('success', true);
+          expect(res.body.data).toHaveProperty('amount', 500);
+          expect(res.body.data).toHaveProperty('method', 'GCASH');
+          expect(res.body.data).toHaveProperty('status', 'PENDING');
+
+          // Verify balance was decremented
+          const updatedProvider = await prisma.provider.findUnique({
+            where: { id: provider!.id },
+          });
+          expect(updatedProvider!.balance).toBe(500); // 1000 - 500
+
+          // Clean up - restore original balance and remove payout
+          await prisma.payout.deleteMany({ where: { providerId: provider!.id } });
+          await prisma.provider.update({
+            where: { id: provider!.id },
+            data: { balance: originalBalance },
+          });
+        });
       });
     });
 
@@ -2812,6 +3037,85 @@ describe('API Endpoints', () => {
         // Webhook should return success even if payment not found
         expect(res.status).toBe(200);
         expect(res.body).toHaveProperty('success', true);
+      });
+
+      it('should process webhook and update payment status when payment found', async () => {
+        // Create a booking first
+        const providerLoginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'provider@test.com', password: 'provider123!' });
+        const providerToken = providerLoginRes.body.data.accessToken;
+
+        const provider = await prisma.provider.findFirst({
+          where: { user: { email: 'provider@test.com' } },
+        });
+
+        // Create a booking
+        const scheduledAt = new Date();
+        scheduledAt.setHours(scheduledAt.getHours() + 24);
+
+        const bookingRes = await request(app)
+          .post('/api/v1/bookings')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            providerId: provider!.id,
+            serviceId: 'svc-thai',
+            duration: 60,
+            scheduledAt: scheduledAt.toISOString(),
+            addressText: 'Payment Test Address',
+            latitude: 14.5586,
+            longitude: 121.0178,
+          });
+
+        const bookingId = bookingRes.body.data.booking.id;
+
+        // Create a payment record matching the webhook
+        const paymentIntentId = `pi_webhook_test_${Date.now()}`;
+        const payment = await prisma.payment.create({
+          data: {
+            bookingId,
+            amount: 1000,
+            method: 'GCASH',
+            status: 'PENDING',
+            paymongoIntentId: paymentIntentId,
+          },
+        });
+
+        // Send webhook
+        const res = await request(app)
+          .post('/api/v1/payments/webhook')
+          .set('paymongo-signature', 'test-signature')
+          .send({
+            data: {
+              attributes: {
+                type: 'payment.paid',
+                data: {
+                  attributes: {
+                    payment_intent_id: paymentIntentId,
+                  },
+                },
+              },
+            },
+          });
+
+        expect(res.status).toBe(200);
+
+        // Verify payment was updated
+        const updatedPayment = await prisma.payment.findUnique({
+          where: { id: payment.id },
+        });
+        expect(updatedPayment!.status).toBe('COMPLETED');
+        expect(updatedPayment!.paidAt).not.toBeNull();
+
+        // Verify booking status was updated
+        const updatedBooking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+        });
+        expect(updatedBooking!.status).toBe('PENDING');
+
+        // Clean up
+        await prisma.payment.delete({ where: { id: payment.id } });
+        await prisma.booking.delete({ where: { id: bookingId } });
       });
     });
 
@@ -3513,6 +3817,111 @@ describe('API Endpoints', () => {
           .set('Authorization', `Bearer ${adminToken}`);
 
         expect(res.status).toBe(200);
+      });
+    });
+  });
+
+  // ============================================================================
+  // SERVICE LAYER TESTS
+  // ============================================================================
+
+  describe('Service Layer', () => {
+    describe('Notification Service', () => {
+      it('should create notification via service', async () => {
+        const { notificationService } = await import('../services/notifications.service.js');
+
+        // Get a test user
+        const user = await prisma.user.findFirst({
+          where: { email: 'customer@test.com' },
+        });
+
+        // Create a notification using the service
+        const notification = await notificationService.createNotification(
+          user!.id,
+          'BOOKING_ACCEPTED',
+          'Test Service Notification',
+          'This notification was created via the service layer test'
+        );
+
+        expect(notification).toBeDefined();
+        expect(notification.userId).toBe(user!.id);
+        expect(notification.type).toBe('BOOKING_ACCEPTED');
+        expect(notification.title).toBe('Test Service Notification');
+        expect(notification.body).toContain('service layer test');
+
+        // Clean up
+        await prisma.notification.delete({ where: { id: notification.id } });
+      });
+
+      it('should create notification with custom data', async () => {
+        const { notificationService } = await import('../services/notifications.service.js');
+
+        const user = await prisma.user.findFirst({
+          where: { email: 'customer@test.com' },
+        });
+
+        const customData = { bookingId: 'test-booking-123', amount: 1000 };
+
+        const notification = await notificationService.createNotification(
+          user!.id,
+          'PAYMENT_RECEIVED',
+          'Payment Received',
+          'Your payment has been processed',
+          customData
+        );
+
+        expect(notification).toBeDefined();
+        expect(notification.data).toEqual(customData);
+
+        // Clean up
+        await prisma.notification.delete({ where: { id: notification.id } });
+      });
+    });
+
+    describe('Provider Service - Availability', () => {
+      it('should return empty availability for provider without schedule', async () => {
+        const { providerService } = await import('../services/providers.service.js');
+
+        const user = await prisma.user.findFirst({
+          where: { email: 'provider@test.com' },
+        });
+
+        // Get availability via service
+        const availability = await providerService.getMyAvailability(user!.id);
+
+        expect(Array.isArray(availability)).toBe(true);
+      });
+
+      it('should set and get provider availability', async () => {
+        const { providerService } = await import('../services/providers.service.js');
+
+        const user = await prisma.user.findFirst({
+          where: { email: 'provider@test.com' },
+        });
+
+        // Set availability
+        const availabilityData = [
+          { dayOfWeek: 1, startTime: '09:00', endTime: '17:00' },
+          { dayOfWeek: 2, startTime: '10:00', endTime: '18:00' },
+        ];
+
+        await providerService.setMyAvailability(user!.id, availabilityData);
+
+        // Get availability
+        const availability = await providerService.getMyAvailability(user!.id);
+
+        expect(availability.length).toBe(2);
+        expect(availability[0]).toHaveProperty('dayOfWeek');
+        expect(availability[0]).toHaveProperty('startTime');
+        expect(availability[0]).toHaveProperty('endTime');
+
+        // Clean up
+        const provider = await prisma.provider.findFirst({
+          where: { user: { email: 'provider@test.com' } },
+        });
+        await prisma.providerAvailability.deleteMany({
+          where: { providerId: provider!.id },
+        });
       });
     });
   });
