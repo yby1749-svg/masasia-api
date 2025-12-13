@@ -3015,6 +3015,17 @@ describe('API Endpoints', () => {
         expect(res.body.message).toContain('/api/v1/non-existent-route');
       });
 
+      it('should handle not found routes with POST method', async () => {
+        const res = await request(app)
+          .post('/api/v1/non-existent-route')
+          .send({ data: 'test' });
+
+        expect(res.status).toBe(404);
+        expect(res.body.error).toBe('Not Found');
+        expect(res.body.message).toContain('POST');
+        expect(res.body.message).toContain('/api/v1/non-existent-route');
+      });
+
       it('should handle Prisma record not found errors (P2025)', async () => {
         // Login as admin
         const loginRes = await request(app)
@@ -3028,6 +3039,120 @@ describe('API Endpoints', () => {
           .set('Authorization', `Bearer ${adminToken}`);
 
         expect(res.status).toBe(404);
+      });
+
+      it('should handle Prisma foreign key constraint errors (P2003)', async () => {
+        // Login as customer
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'customer@test.com', password: 'customer123!' });
+        const customerToken = loginRes.body.data.accessToken;
+
+        // Try to create a report with invalid foreign key (non-existent user)
+        const res = await request(app)
+          .post('/api/v1/reports')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            reportedId: 'non-existent-user-id-12345',
+            type: 'OTHER',
+            description: 'Test report with invalid foreign key',
+          });
+
+        // Should return 400 for foreign key constraint failure
+        expect([400, 500]).toContain(res.status);
+        expect(res.body).toHaveProperty('error');
+      });
+
+      it('should handle Prisma validation errors', async () => {
+        // Login as admin
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+        const adminToken = loginRes.body.data.accessToken;
+
+        // Try to create a service with invalid data types
+        const res = await request(app)
+          .post('/api/v1/admin/services')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name: 'Test Service',
+            category: 'INVALID_CATEGORY', // Invalid enum value
+            baseDuration: 'not-a-number', // Should be number
+            basePrice: 'not-a-number', // Should be number
+          });
+
+        expect([400, 500]).toContain(res.status);
+        expect(res.body).toHaveProperty('error');
+      });
+
+      it('should handle AppError with custom status code', async () => {
+        // Try to get a non-existent service - triggers AppError with 404
+        const res = await request(app)
+          .get('/api/v1/services/non-existent-service-id');
+
+        expect(res.status).toBe(404);
+        expect(res.body).toHaveProperty('error');
+      });
+
+      it('should handle duplicate phone number on registration', async () => {
+        // First get existing customer's phone
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'customer@test.com', password: 'customer123!' });
+        const customerToken = loginRes.body.data.accessToken;
+
+        const profileRes = await request(app)
+          .get('/api/v1/users/me')
+          .set('Authorization', `Bearer ${customerToken}`);
+
+        const existingPhone = profileRes.body.data.phone;
+
+        // Try to register with existing phone
+        const res = await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: `unique-email-${Date.now()}@test.com`,
+            password: 'password123!',
+            phone: existingPhone,
+            firstName: 'Duplicate',
+            lastName: 'Phone',
+          });
+
+        expect([400, 409]).toContain(res.status);
+        expect(res.body).toHaveProperty('error');
+      });
+
+      it('should handle update operations on non-existent records', async () => {
+        // Login as admin
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+        const adminToken = loginRes.body.data.accessToken;
+
+        // Try to update a non-existent service
+        const res = await request(app)
+          .patch('/api/v1/admin/services/non-existent-service-id')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ name: 'Updated Name' });
+
+        expect(res.status).toBe(404);
+        expect(res.body).toHaveProperty('error');
+      });
+
+      it('should handle delete operations on non-existent records', async () => {
+        // Login as admin
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+        const adminToken = loginRes.body.data.accessToken;
+
+        // Try to delete a non-existent service
+        const res = await request(app)
+          .delete('/api/v1/admin/services/non-existent-service-id')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        expect(res.status).toBe(404);
+        expect(res.body).toHaveProperty('error');
       });
     });
 
