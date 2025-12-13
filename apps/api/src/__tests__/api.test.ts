@@ -1,7 +1,13 @@
 import request from 'supertest';
 import app from '../app.js';
+import { prisma } from '../config/database.js';
 
 describe('API Endpoints', () => {
+  // Clean up refresh tokens before each test suite to avoid unique constraint errors
+  beforeEach(async () => {
+    await prisma.refreshToken.deleteMany({});
+  });
+
   describe('GET /health', () => {
     it('should return health status', async () => {
       const res = await request(app).get('/health');
@@ -61,9 +67,16 @@ describe('API Endpoints', () => {
     let accessToken: string;
 
     beforeAll(async () => {
+      // Clean tokens before getting a new one
+      await prisma.refreshToken.deleteMany({});
+
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({ email: 'customer@test.com', password: 'customer123!' });
+
+      if (!res.body.data?.accessToken) {
+        throw new Error(`Login failed: ${JSON.stringify(res.body)}`);
+      }
       accessToken = res.body.data.accessToken;
     });
 
