@@ -471,7 +471,6 @@ describe('API Endpoints', () => {
     let customerToken: string;
     let providerToken: string;
     let providerId: string;
-    let providerUserId: string;
     let completedBookingId: string;
     let createdReviewId: string;
 
@@ -489,7 +488,6 @@ describe('API Endpoints', () => {
         .post('/api/v1/auth/login')
         .send({ email: 'provider@test.com', password: 'provider123!' });
       providerToken = providerRes.body.data.accessToken;
-      providerUserId = providerRes.body.data.user.id;
 
       // Get provider ID
       const provider = await prisma.provider.findFirst({
