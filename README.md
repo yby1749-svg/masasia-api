@@ -1,5 +1,7 @@
 # Call MSG - On-Demand Massage Platform
 
+[![CI](https://github.com/yby1749-svg/callmsg-api/actions/workflows/ci.yml/badge.svg)](https://github.com/yby1749-svg/callmsg-api/actions/workflows/ci.yml)
+
 > 필리핀 메트로 마닐라 대상 온디맨드 출장 마사지 플랫폼
 
 ## 📋 프로젝트 구조
