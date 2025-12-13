@@ -1,11 +1,13 @@
 name: Deploy
 
+# Auto-deploy disabled until AWS is configured
+# To enable: uncomment the push trigger below
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
+  # push:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - '*.md'
+  #     - 'docs/**'
   workflow_dispatch:
     inputs:
       environment:
