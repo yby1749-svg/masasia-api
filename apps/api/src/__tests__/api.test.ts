@@ -5590,6 +5590,67 @@ describe('API Endpoints', () => {
           expect(res.body.success).toBe(true);
         });
 
+        it('should handle getNotifications with unreadOnly filter', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .get('/api/v1/notifications')
+            .query({ unreadOnly: 'true' })
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data).toBeDefined();
+        });
+
+        it('should handle getNotifications with limit', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .get('/api/v1/notifications')
+            .query({ limit: '5' })
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data.length).toBeLessThanOrEqual(5);
+        });
+
+        it('should handle markAsRead for existing notification', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+          const userId = loginRes.body.data.user.id;
+
+          // Create a notification to mark as read
+          const notification = await prisma.notification.create({
+            data: {
+              userId,
+              type: 'BOOKING_ACCEPTED',
+              title: 'Test Notification',
+              body: 'This is a test notification for controller test',
+            },
+          });
+
+          const res = await request(app)
+            .patch(`/api/v1/notifications/${notification.id}/read`)
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.message).toContain('read');
+
+          // Clean up
+          await prisma.notification.delete({ where: { id: notification.id } });
+        });
+
         it('should handle markAsRead for non-existent notification', async () => {
           const loginRes = await request(app)
             .post('/api/v1/auth/login')
@@ -5600,7 +5661,8 @@ describe('API Endpoints', () => {
             .patch('/api/v1/notifications/non-existent-id/read')
             .set('Authorization', `Bearer ${token}`);
 
-          expect([200, 404]).toContain(res.status);
+          // Service uses updateMany which succeeds even with no matches
+          expect(res.status).toBe(200);
         });
 
         it('should handle markAllAsRead', async () => {
@@ -5615,6 +5677,53 @@ describe('API Endpoints', () => {
 
           expect(res.status).toBe(200);
           expect(res.body.success).toBe(true);
+        });
+
+        it('should handle markAllAsRead with existing unread notifications', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+          const userId = loginRes.body.data.user.id;
+
+          // Create unread notifications
+          const notification1 = await prisma.notification.create({
+            data: {
+              userId,
+              type: 'BOOKING_ACCEPTED',
+              title: 'Test Notification 1',
+              body: 'Unread notification 1',
+              isRead: false,
+            },
+          });
+          const notification2 = await prisma.notification.create({
+            data: {
+              userId,
+              type: 'PAYMENT_RECEIVED',
+              title: 'Test Notification 2',
+              body: 'Unread notification 2',
+              isRead: false,
+            },
+          });
+
+          const res = await request(app)
+            .patch('/api/v1/notifications/read-all')
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.message).toContain('All');
+
+          // Verify notifications are marked as read
+          const updated1 = await prisma.notification.findUnique({ where: { id: notification1.id } });
+          const updated2 = await prisma.notification.findUnique({ where: { id: notification2.id } });
+          expect(updated1?.isRead).toBe(true);
+          expect(updated2?.isRead).toBe(true);
+
+          // Clean up
+          await prisma.notification.deleteMany({
+            where: { id: { in: [notification1.id, notification2.id] } },
+          });
         });
       });
 
