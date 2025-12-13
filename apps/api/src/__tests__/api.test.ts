@@ -5451,6 +5451,21 @@ describe('API Endpoints', () => {
 
     describe('Controller Error Handling', () => {
       describe('Users Controller', () => {
+        it('should handle getProfile success', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .get('/api/v1/users/me')
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data).toHaveProperty('email', 'customer@test.com');
+        });
+
         it('should handle getProfile error', async () => {
           // Use invalid token to trigger error in auth middleware path
           const res = await request(app)
@@ -5458,6 +5473,21 @@ describe('API Endpoints', () => {
             .set('Authorization', 'Bearer invalid-token');
 
           expect(res.status).toBe(401);
+        });
+
+        it('should handle updateProfile success', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .patch('/api/v1/users/me')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ firstName: 'UpdatedName' });
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
         });
 
         it('should handle updateProfile with invalid data', async () => {
@@ -5474,6 +5504,59 @@ describe('API Endpoints', () => {
 
           // May succeed with invalid data or return error depending on validation
           expect([200, 400, 500]).toContain(res.status);
+        });
+
+        it('should handle changePassword success', async () => {
+          // Create a temporary user to test password change
+          const bcrypt = await import('bcryptjs');
+          const tempUser = await prisma.user.create({
+            data: {
+              email: 'temppassword@test.com',
+              phone: '+639999999999',
+              passwordHash: await bcrypt.hash('oldpassword123!', 10),
+              firstName: 'Temp',
+              lastName: 'User',
+              role: 'CUSTOMER',
+            },
+          });
+
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'temppassword@test.com', password: 'oldpassword123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .patch('/api/v1/users/me/password')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              currentPassword: 'oldpassword123!',
+              newPassword: 'newpassword123!',
+            });
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.message).toContain('Password');
+
+          // Clean up
+          await prisma.refreshToken.deleteMany({ where: { userId: tempUser.id } });
+          await prisma.user.delete({ where: { id: tempUser.id } });
+        });
+
+        it('should handle changePassword with wrong current password', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .patch('/api/v1/users/me/password')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              currentPassword: 'wrongpassword!',
+              newPassword: 'newpassword123!',
+            });
+
+          expect(res.status).toBe(400);
         });
 
         it('should handle uploadAvatar endpoint', async () => {
@@ -5547,6 +5630,38 @@ describe('API Endpoints', () => {
           }
         });
 
+        it('should handle updateAddress for existing address', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+          const userId = loginRes.body.data.user.id;
+
+          // Create an address to update
+          const address = await prisma.address.create({
+            data: {
+              userId,
+              label: 'Test Address',
+              addressLine1: '123 Test Street',
+              city: 'Manila',
+              latitude: 14.5995,
+              longitude: 120.9842,
+            },
+          });
+
+          const res = await request(app)
+            .patch(`/api/v1/users/me/addresses/${address.id}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ label: 'Updated Label', city: 'Makati' });
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data.label).toBe('Updated Label');
+
+          // Clean up
+          await prisma.address.delete({ where: { id: address.id } });
+        });
+
         it('should handle updateAddress for non-existent address', async () => {
           const loginRes = await request(app)
             .post('/api/v1/auth/login')
@@ -5559,6 +5674,36 @@ describe('API Endpoints', () => {
             .send({ label: 'Updated Label' });
 
           expect(res.status).toBe(404);
+        });
+
+        it('should handle deleteAddress for existing address', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+          const userId = loginRes.body.data.user.id;
+
+          // Create an address to delete
+          const address = await prisma.address.create({
+            data: {
+              userId,
+              label: 'Address To Delete',
+              addressLine1: '456 Delete Street',
+              city: 'Quezon City',
+              latitude: 14.6760,
+              longitude: 121.0437,
+            },
+          });
+
+          const res = await request(app)
+            .delete(`/api/v1/users/me/addresses/${address.id}`)
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(204);
+
+          // Verify it's deleted
+          const deleted = await prisma.address.findUnique({ where: { id: address.id } });
+          expect(deleted).toBeNull();
         });
 
         it('should handle deleteAddress for non-existent address', async () => {
