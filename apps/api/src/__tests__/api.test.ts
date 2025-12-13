@@ -6310,6 +6310,104 @@ describe('API Endpoints', () => {
           expect(res.status).toBe(200);
           expect(res.body.success).toBe(true);
         });
+
+        it('should handle uploadEvidence', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .post('/api/v1/reports/upload-evidence')
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.url).toBeDefined();
+        });
+
+        it('should handle createReport with different report types', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const providerUser = await prisma.user.findFirst({
+            where: { email: 'provider@test.com' },
+          });
+
+          // Test with SERVICE_QUALITY type
+          const res = await request(app)
+            .post('/api/v1/reports')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              reportedId: providerUser!.id,
+              type: 'SERVICE_QUALITY',
+              description: 'Test service quality report',
+            });
+
+          expect(res.status).toBe(201);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data.type).toBe('SERVICE_QUALITY');
+
+          // Clean up
+          if (res.body.data?.id) {
+            await prisma.report.delete({ where: { id: res.body.data.id } });
+          }
+        });
+
+        it('should handle createReport with invalid reportedId', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .post('/api/v1/reports')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              reportedId: 'non-existent-user-id',
+              type: 'UNPROFESSIONAL',
+              description: 'Test report with invalid user',
+            });
+
+          // Should fail due to foreign key constraint or validation
+          expect([400, 404, 500]).toContain(res.status);
+        });
+
+        it('should handle getMyReports with existing reports', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'customer@test.com', password: 'customer123!' });
+          const token = loginRes.body.data.accessToken;
+          const userId = loginRes.body.data.user.id;
+
+          const providerUser = await prisma.user.findFirst({
+            where: { email: 'provider@test.com' },
+          });
+
+          // Create a report
+          const report = await prisma.report.create({
+            data: {
+              reporterId: userId,
+              reportedId: providerUser!.id,
+              type: 'OTHER',
+              description: 'Test report for getMyReports test',
+            },
+          });
+
+          const res = await request(app)
+            .get('/api/v1/reports/me')
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body.data.length).toBeGreaterThan(0);
+
+          // Clean up
+          await prisma.report.delete({ where: { id: report.id } });
+        });
       });
 
       describe('Services Controller', () => {
