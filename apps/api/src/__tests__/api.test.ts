@@ -628,6 +628,166 @@ describe('API Endpoints', () => {
         // Clean up
         await prisma.booking.delete({ where: { id: bookingId } });
       });
+
+      it('should not reject an already accepted booking', async () => {
+        // Create and accept a booking
+        const scheduledAt = new Date();
+        scheduledAt.setHours(scheduledAt.getHours() + 7);
+
+        const bookingRes = await request(app)
+          .post('/api/v1/bookings')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            providerId,
+            serviceId: 'svc-thai',
+            duration: 60,
+            scheduledAt: scheduledAt.toISOString(),
+            addressText: 'Already Accepted Test',
+            latitude: 14.5586,
+            longitude: 121.0178,
+          });
+
+        const bookingId = bookingRes.body.data.booking.id;
+
+        // Accept it first
+        await request(app)
+          .post(`/api/v1/bookings/${bookingId}/accept`)
+          .set('Authorization', `Bearer ${providerToken}`);
+
+        // Try to reject
+        const res = await request(app)
+          .post(`/api/v1/bookings/${bookingId}/reject`)
+          .set('Authorization', `Bearer ${providerToken}`)
+          .send({ reason: 'Changed mind' });
+
+        expect(res.status).toBe(400);
+
+        // Clean up
+        await prisma.booking.delete({ where: { id: bookingId } });
+      });
+    });
+
+    describe('Provider Location Tracking', () => {
+      it('should update provider location during booking', async () => {
+        // Create a booking
+        const scheduledAt = new Date();
+        scheduledAt.setHours(scheduledAt.getHours() + 8);
+
+        const bookingRes = await request(app)
+          .post('/api/v1/bookings')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            providerId,
+            serviceId: 'svc-thai',
+            duration: 60,
+            scheduledAt: scheduledAt.toISOString(),
+            addressText: 'Location Tracking Test',
+            latitude: 14.5586,
+            longitude: 121.0178,
+          });
+
+        expect(bookingRes.status).toBe(201);
+        const bookingId = bookingRes.body.data.booking.id;
+
+        // Accept the booking
+        await request(app)
+          .post(`/api/v1/bookings/${bookingId}/accept`)
+          .set('Authorization', `Bearer ${providerToken}`);
+
+        // Set to en route
+        await request(app)
+          .patch(`/api/v1/bookings/${bookingId}/status`)
+          .set('Authorization', `Bearer ${providerToken}`)
+          .send({ status: 'PROVIDER_EN_ROUTE' });
+
+        // Update provider location - should succeed
+        const locationRes = await request(app)
+          .post(`/api/v1/bookings/${bookingId}/location`)
+          .set('Authorization', `Bearer ${providerToken}`)
+          .send({ latitude: 14.5600, longitude: 121.0200 });
+
+        expect(locationRes.status).toBe(200);
+        expect(locationRes.body).toHaveProperty('success', true);
+
+        // Clean up
+        await prisma.locationLog.deleteMany({ where: { bookingId } });
+        await prisma.booking.delete({ where: { id: bookingId } });
+      });
+
+      it('should return 404 for non-existent booking location', async () => {
+        const res = await request(app)
+          .get('/api/v1/bookings/non-existent-id/provider-location')
+          .set('Authorization', `Bearer ${customerToken}`);
+
+        expect(res.status).toBe(404);
+      });
+
+      it('should require provider role to update location', async () => {
+        // Customer cannot update location - only provider can
+        const res = await request(app)
+          .post('/api/v1/bookings/some-booking-id/location')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({ latitude: 14.5600, longitude: 121.0200 });
+
+        // Customer is not a provider, so middleware rejects with 403
+        expect(res.status).toBe(403);
+      });
+    });
+
+    describe('SOS Emergency', () => {
+      it('should return 404 for SOS on non-existent booking', async () => {
+        const res = await request(app)
+          .post('/api/v1/bookings/non-existent-id/sos')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            latitude: 14.5586,
+            longitude: 121.0178,
+            message: 'Emergency!',
+          });
+
+        expect(res.status).toBe(404);
+      });
+
+      it('should require booking to exist for SOS', async () => {
+        // Test SOS endpoint with invalid booking - exercises triggerSOS controller
+        const res = await request(app)
+          .post('/api/v1/bookings/invalid-booking-123/sos')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            message: 'Test SOS',
+          });
+
+        expect(res.status).toBe(404);
+        expect(res.body.error).toContain('not found');
+      });
+    });
+
+    describe('Booking Error Cases', () => {
+      it('should return 404 when accepting non-existent booking', async () => {
+        const res = await request(app)
+          .post('/api/v1/bookings/non-existent-id/accept')
+          .set('Authorization', `Bearer ${providerToken}`);
+
+        expect(res.status).toBe(404);
+      });
+
+      it('should return 404 when updating status of non-existent booking', async () => {
+        const res = await request(app)
+          .patch('/api/v1/bookings/non-existent-id/status')
+          .set('Authorization', `Bearer ${providerToken}`)
+          .send({ status: 'IN_PROGRESS' });
+
+        expect(res.status).toBe(404);
+      });
+
+      it('should return 404 when updating location of non-existent booking', async () => {
+        const res = await request(app)
+          .post('/api/v1/bookings/non-existent-id/location')
+          .set('Authorization', `Bearer ${providerToken}`)
+          .send({ latitude: 14.5600, longitude: 121.0200 });
+
+        expect(res.status).toBe(404);
+      });
     });
   });
 
