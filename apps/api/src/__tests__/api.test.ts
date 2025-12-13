@@ -1113,4 +1113,287 @@ describe('API Endpoints', () => {
       });
     });
   });
+
+  describe('User Profile Routes', () => {
+    let customerToken: string;
+    let createdAddressId: string;
+
+    beforeAll(async () => {
+      await prisma.refreshToken.deleteMany({});
+
+      // Login as customer
+      const customerRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'customer@test.com', password: 'customer123!' });
+      customerToken = customerRes.body.data.accessToken;
+    });
+
+    afterAll(async () => {
+      // Clean up created addresses
+      if (createdAddressId) {
+        await prisma.address.deleteMany({ where: { id: createdAddressId } });
+      }
+    });
+
+    describe('GET /api/v1/users/me', () => {
+      it('should require authentication', async () => {
+        const res = await request(app).get('/api/v1/users/me');
+        expect(res.status).toBe(401);
+      });
+
+      it('should return user profile', async () => {
+        const res = await request(app)
+          .get('/api/v1/users/me')
+          .set('Authorization', `Bearer ${customerToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('id');
+        expect(res.body.data).toHaveProperty('email', 'customer@test.com');
+        expect(res.body.data).toHaveProperty('role');
+        expect(res.body.data).not.toHaveProperty('passwordHash');
+      });
+    });
+
+    describe('PATCH /api/v1/users/me', () => {
+      it('should require authentication', async () => {
+        const res = await request(app)
+          .patch('/api/v1/users/me')
+          .send({ firstName: 'Test' });
+        expect(res.status).toBe(401);
+      });
+
+      it('should update user profile', async () => {
+        const res = await request(app)
+          .patch('/api/v1/users/me')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            firstName: 'Updated',
+            lastName: 'Customer',
+            gender: 'MALE',
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data.firstName).toBe('Updated');
+        expect(res.body.data.lastName).toBe('Customer');
+      });
+
+      it('should update emergency contact', async () => {
+        const res = await request(app)
+          .patch('/api/v1/users/me')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            emergencyName: 'Emergency Contact',
+            emergencyPhone: '+639123456789',
+            emergencyRelation: 'Spouse',
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+    });
+
+    describe('PATCH /api/v1/users/me/password', () => {
+      it('should require authentication', async () => {
+        const res = await request(app)
+          .patch('/api/v1/users/me/password')
+          .send({ currentPassword: 'old', newPassword: 'new' });
+        expect(res.status).toBe(401);
+      });
+
+      it('should reject incorrect current password', async () => {
+        const res = await request(app)
+          .patch('/api/v1/users/me/password')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            currentPassword: 'wrongpassword',
+            newPassword: 'newpassword123!',
+          });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toContain('incorrect');
+      });
+
+      it('should change password with correct current password', async () => {
+        // Change password
+        const res = await request(app)
+          .patch('/api/v1/users/me/password')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            currentPassword: 'customer123!',
+            newPassword: 'newpassword123!',
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.message).toContain('changed');
+
+        // Change it back for other tests
+        await request(app)
+          .patch('/api/v1/users/me/password')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            currentPassword: 'newpassword123!',
+            newPassword: 'customer123!',
+          });
+      });
+    });
+
+    describe('PATCH /api/v1/users/me/fcm-token', () => {
+      it('should require authentication', async () => {
+        const res = await request(app)
+          .patch('/api/v1/users/me/fcm-token')
+          .send({ fcmToken: 'test-token' });
+        expect(res.status).toBe(401);
+      });
+
+      it('should update FCM token', async () => {
+        const res = await request(app)
+          .patch('/api/v1/users/me/fcm-token')
+          .set('Authorization', `Bearer ${customerToken}`)
+          .send({
+            fcmToken: 'test-fcm-token-12345',
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.message).toContain('updated');
+      });
+    });
+
+    describe('Address Management', () => {
+      describe('GET /api/v1/users/me/addresses', () => {
+        it('should require authentication', async () => {
+          const res = await request(app).get('/api/v1/users/me/addresses');
+          expect(res.status).toBe(401);
+        });
+
+        it('should return user addresses', async () => {
+          const res = await request(app)
+            .get('/api/v1/users/me/addresses')
+            .set('Authorization', `Bearer ${customerToken}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body).toHaveProperty('success', true);
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+      });
+
+      describe('POST /api/v1/users/me/addresses', () => {
+        it('should require authentication', async () => {
+          const res = await request(app)
+            .post('/api/v1/users/me/addresses')
+            .send({ label: 'Home' });
+          expect(res.status).toBe(401);
+        });
+
+        it('should add a new address', async () => {
+          const res = await request(app)
+            .post('/api/v1/users/me/addresses')
+            .set('Authorization', `Bearer ${customerToken}`)
+            .send({
+              label: 'Test Home',
+              addressLine1: '123 Test Street',
+              addressLine2: 'Unit 456',
+              city: 'Makati',
+              province: 'Metro Manila',
+              postalCode: '1234',
+              latitude: 14.5547,
+              longitude: 121.0244,
+              isDefault: false,
+            });
+
+          expect(res.status).toBe(201);
+          expect(res.body).toHaveProperty('success', true);
+          expect(res.body.data).toHaveProperty('id');
+          expect(res.body.data.label).toBe('Test Home');
+          expect(res.body.data.city).toBe('Makati');
+
+          createdAddressId = res.body.data.id;
+        });
+
+        it('should add default address and update others', async () => {
+          const res = await request(app)
+            .post('/api/v1/users/me/addresses')
+            .set('Authorization', `Bearer ${customerToken}`)
+            .send({
+              label: 'Default Address',
+              addressLine1: '789 Main Road',
+              city: 'BGC',
+              latitude: 14.5512,
+              longitude: 121.0456,
+              isDefault: true,
+            });
+
+          expect(res.status).toBe(201);
+          expect(res.body.data.isDefault).toBe(true);
+
+          // Clean up
+          await prisma.address.delete({ where: { id: res.body.data.id } });
+        });
+      });
+
+      describe('PATCH /api/v1/users/me/addresses/:addressId', () => {
+        it('should require authentication', async () => {
+          const res = await request(app)
+            .patch(`/api/v1/users/me/addresses/${createdAddressId}`)
+            .send({ label: 'Updated' });
+          expect(res.status).toBe(401);
+        });
+
+        it('should update an address', async () => {
+          if (!createdAddressId) return;
+
+          const res = await request(app)
+            .patch(`/api/v1/users/me/addresses/${createdAddressId}`)
+            .set('Authorization', `Bearer ${customerToken}`)
+            .send({
+              label: 'Updated Home',
+              addressLine1: '456 Updated Street',
+            });
+
+          expect(res.status).toBe(200);
+          expect(res.body).toHaveProperty('success', true);
+          expect(res.body.data.label).toBe('Updated Home');
+        });
+
+        it('should return 404 for non-existent address', async () => {
+          const res = await request(app)
+            .patch('/api/v1/users/me/addresses/non-existent-id')
+            .set('Authorization', `Bearer ${customerToken}`)
+            .send({ label: 'Test' });
+
+          expect(res.status).toBe(404);
+        });
+      });
+
+      describe('DELETE /api/v1/users/me/addresses/:addressId', () => {
+        it('should require authentication', async () => {
+          const res = await request(app)
+            .delete(`/api/v1/users/me/addresses/${createdAddressId}`);
+          expect(res.status).toBe(401);
+        });
+
+        it('should return 404 for non-existent address', async () => {
+          const res = await request(app)
+            .delete('/api/v1/users/me/addresses/non-existent-id')
+            .set('Authorization', `Bearer ${customerToken}`);
+
+          expect(res.status).toBe(404);
+        });
+
+        it('should delete an address', async () => {
+          if (!createdAddressId) return;
+
+          const res = await request(app)
+            .delete(`/api/v1/users/me/addresses/${createdAddressId}`)
+            .set('Authorization', `Bearer ${customerToken}`);
+
+          expect(res.status).toBe(204);
+          createdAddressId = ''; // Mark as deleted
+        });
+      });
+    });
+  });
 });
