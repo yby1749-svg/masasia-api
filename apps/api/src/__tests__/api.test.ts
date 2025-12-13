@@ -1396,4 +1396,301 @@ describe('API Endpoints', () => {
       });
     });
   });
+
+  describe('Auth Routes', () => {
+    // Use seeded customer for most tests
+    const seededEmail = 'customer@test.com';
+    const seededPassword = 'customer123!';
+
+    describe('POST /api/v1/auth/register', () => {
+      // Use unique identifiers for this specific test run
+      const testRunId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const newUserEmail = `newuser-${testRunId}@example.com`;
+      const newUserPhone = `+63${Date.now().toString().slice(-10)}`;
+
+      afterAll(async () => {
+        // Clean up test user
+        await prisma.refreshToken.deleteMany({
+          where: { user: { email: newUserEmail } },
+        });
+        await prisma.user.deleteMany({
+          where: { email: newUserEmail },
+        });
+      });
+
+      it('should register a new user', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: newUserEmail,
+            phone: newUserPhone,
+            password: 'testpassword123!',
+            firstName: 'Test',
+            lastName: 'User',
+            role: 'CUSTOMER',
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body).toHaveProperty('success', true);
+        // Register returns userId and message, not full user object with tokens
+        expect(res.body.data).toHaveProperty('userId');
+        expect(res.body.data).toHaveProperty('message');
+      });
+
+      it('should reject duplicate email', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: seededEmail, // Use existing seeded email
+            phone: '+639987654321',
+            password: 'anotherpassword123!',
+            firstName: 'Duplicate',
+            lastName: 'User',
+          });
+
+        expect(res.status).toBe(409);
+        expect(res.body.error).toContain('exists');
+      });
+
+      it('should reject missing required fields', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: 'incomplete@example.com',
+          });
+
+        // Zod validation returns 400 for missing required fields
+        expect([400, 500]).toContain(res.status);
+      });
+    });
+
+    describe('POST /api/v1/auth/login', () => {
+      it('should login with valid credentials', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: seededEmail,
+            password: seededPassword,
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('accessToken');
+        expect(res.body.data).toHaveProperty('refreshToken');
+        expect(res.body.data).toHaveProperty('user');
+      });
+
+      it('should reject invalid password', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: seededEmail,
+            password: 'wrongpassword',
+          });
+
+        expect(res.status).toBe(401);
+        expect(res.body.error).toContain('Invalid');
+      });
+
+      it('should reject non-existent email', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: 'nonexistent@example.com',
+            password: 'anypassword',
+          });
+
+        expect(res.status).toBe(401);
+      });
+    });
+
+    describe('POST /api/v1/auth/refresh', () => {
+      it('should refresh access token with valid refresh token', async () => {
+        // First login to get a valid refresh token
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: seededEmail,
+            password: seededPassword,
+          });
+
+        // Ensure login succeeded before testing refresh
+        expect(loginRes.status).toBe(200);
+        expect(loginRes.body.data).toHaveProperty('refreshToken');
+
+        const refreshToken = loginRes.body.data.refreshToken;
+
+        // Wait 1.1 seconds to ensure the new token has a different 'iat' claim
+        // (JWT tokens generated within the same second are identical)
+        await new Promise(resolve => setTimeout(resolve, 1100));
+
+        const res = await request(app)
+          .post('/api/v1/auth/refresh')
+          .send({ refreshToken });
+
+        // Refresh should return new tokens
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('accessToken');
+        expect(res.body.data).toHaveProperty('refreshToken');
+      });
+
+      it('should reject invalid refresh token', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/refresh')
+          .send({
+            refreshToken: 'invalid-refresh-token',
+          });
+
+        expect(res.status).toBe(401);
+      });
+    });
+
+    describe('POST /api/v1/auth/forgot-password', () => {
+      it('should accept valid email for password reset', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/forgot-password')
+          .send({
+            email: seededEmail,
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.message).toContain('sent');
+      });
+
+      it('should accept non-existent email silently', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/forgot-password')
+          .send({
+            email: 'nonexistent@example.com',
+          });
+
+        expect(res.status).toBe(200);
+      });
+    });
+
+    describe('POST /api/v1/auth/reset-password', () => {
+      it('should reject invalid reset token', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/reset-password')
+          .send({
+            token: 'invalid-reset-token',
+            password: 'newpassword123!',
+          });
+
+        expect(res.status).toBe(400);
+      });
+    });
+
+    describe('POST /api/v1/auth/logout', () => {
+      it('should require authentication', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/logout')
+          .send({});
+
+        expect(res.status).toBe(401);
+      });
+
+      it('should logout and invalidate refresh token', async () => {
+        // Login to get fresh tokens
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: seededEmail,
+            password: seededPassword,
+          });
+
+        const accessToken = loginRes.body.data.accessToken;
+        const refreshToken = loginRes.body.data.refreshToken;
+
+        // Logout
+        const res = await request(app)
+          .post('/api/v1/auth/logout')
+          .set('Authorization', `Bearer ${accessToken}`)
+          .send({ refreshToken });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.message).toContain('Logged out');
+
+        // Verify refresh token is invalidated
+        const refreshRes = await request(app)
+          .post('/api/v1/auth/refresh')
+          .send({ refreshToken });
+
+        expect(refreshRes.status).toBe(401);
+      });
+    });
+
+    describe('Phone Verification', () => {
+      it('should require authentication for sending OTP', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/verify-phone')
+          .send({});
+
+        expect(res.status).toBe(401);
+      });
+
+      it('should send phone OTP', async () => {
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: seededEmail, password: seededPassword });
+        const token = loginRes.body.data.accessToken;
+
+        const res = await request(app)
+          .post('/api/v1/auth/verify-phone')
+          .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+
+      it('should reject invalid OTP', async () => {
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: seededEmail, password: seededPassword });
+        const token = loginRes.body.data.accessToken;
+
+        const res = await request(app)
+          .post('/api/v1/auth/verify-phone/confirm')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ otp: '000000' });
+
+        expect(res.status).toBe(400);
+      });
+    });
+
+    describe('Email Verification', () => {
+      it('should require authentication for sending verification email', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/verify-email')
+          .send({});
+
+        expect(res.status).toBe(401);
+      });
+
+      it('should send verification email', async () => {
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: seededEmail, password: seededPassword });
+        const token = loginRes.body.data.accessToken;
+
+        const res = await request(app)
+          .post('/api/v1/auth/verify-email')
+          .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+
+      it('should reject invalid verification token', async () => {
+        const res = await request(app)
+          .post('/api/v1/auth/verify-email/confirm')
+          .send({ token: 'invalid-verification-token' });
+
+        expect(res.status).toBe(400);
+      });
+    });
+  });
 });
