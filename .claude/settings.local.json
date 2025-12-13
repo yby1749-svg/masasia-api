@@ -29,7 +29,20 @@
       "Bash(npm test)",
       "Bash(__NEW_LINE__ echo \"1. Health Check\")",
       "Bash(__NEW_LINE__ echo \"\")",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(cat:*)",
+      "Bash(git push)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(docker build:*)",
+      "Bash(docker run:*)",
+      "Bash(callmsg-api:test)",
+      "Bash(docker logs:*)",
+      "Bash(xargs:*)",
+      "Bash(pkill:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker system prune:*)"
     ]
   }
 }
