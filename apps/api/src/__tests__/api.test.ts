@@ -6411,11 +6411,85 @@ describe('API Endpoints', () => {
       });
 
       describe('Services Controller', () => {
+        it('should handle listServices', async () => {
+          const res = await request(app)
+            .get('/api/v1/services');
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+
+        it('should handle listServices with category filter', async () => {
+          const res = await request(app)
+            .get('/api/v1/services')
+            .query({ category: 'THAI_MASSAGE' });
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+        });
+
+        it('should handle getServiceDetail for existing service', async () => {
+          const res = await request(app)
+            .get('/api/v1/services/svc-thai');
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data).toBeDefined();
+          expect(res.body.data.id).toBe('svc-thai');
+        });
+
         it('should handle getServiceDetail for non-existent service', async () => {
           const res = await request(app)
             .get('/api/v1/services/non-existent-service-id');
 
           expect(res.status).toBe(404);
+        });
+
+        it('should handle getServiceAreas', async () => {
+          const res = await request(app)
+            .get('/api/v1/services/areas');
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data).toBeDefined();
+        });
+
+        it('should handle validatePromoCode with valid code', async () => {
+          // Create a test promotion
+          const promotion = await prisma.promotion.create({
+            data: {
+              code: 'TESTPROMO2024',
+              name: 'Test Promo',
+              discountType: 'PERCENTAGE',
+              discountValue: 10,
+              startsAt: new Date(),
+              endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+              isActive: true,
+            },
+          });
+
+          const res = await request(app)
+            .post('/api/v1/services/promotions/validate')
+            .send({ code: 'TESTPROMO2024', amount: 1000 });
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data).toBeDefined();
+
+          // Clean up
+          await prisma.promotion.delete({ where: { id: promotion.id } });
+        });
+
+        it('should handle validatePromoCode with invalid code', async () => {
+          const res = await request(app)
+            .post('/api/v1/services/promotions/validate')
+            .send({ code: 'INVALIDCODE', amount: 1000 });
+
+          // API returns 200 with valid: false for invalid codes
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data.valid).toBe(false);
         });
 
         it('should handle validatePromoCode with missing code', async () => {
