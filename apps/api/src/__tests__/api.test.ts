@@ -6266,6 +6266,62 @@ describe('API Endpoints', () => {
           expect(res.body.success).toBe(true);
           expect(res.body.data).toBeDefined();
         });
+
+        it('should handle getMyProfile success', async () => {
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'provider@test.com', password: 'provider123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .get('/api/v1/providers/me/profile')
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data).toBeDefined();
+        });
+
+        it('should handle getProviderReviews for valid provider', async () => {
+          const provider = await prisma.provider.findFirst();
+          const res = await request(app)
+            .get(`/api/v1/providers/${provider!.id}/reviews`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+        });
+
+        it('should handle getProviderAvailability for valid provider', async () => {
+          const provider = await prisma.provider.findFirst();
+          const res = await request(app)
+            .get(`/api/v1/providers/${provider!.id}/availability`)
+            .query({ date: new Date().toISOString().split('T')[0] });
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+        });
+
+        it('should handle getMyAvailability for approved provider', async () => {
+          // First verify provider is approved
+          const providerUser = await prisma.user.findFirst({
+            where: { email: 'provider@test.com' },
+            include: { provider: true },
+          });
+          expect(providerUser?.provider?.status).toBe('APPROVED');
+
+          const loginRes = await request(app)
+            .post('/api/v1/auth/login')
+            .send({ email: 'provider@test.com', password: 'provider123!' });
+          const token = loginRes.body.data.accessToken;
+
+          const res = await request(app)
+            .get('/api/v1/providers/me/availability')
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.success).toBe(true);
+          expect(res.body.data).toBeDefined();
+        });
       });
 
       describe('Reports Controller', () => {
