@@ -1,4 +1,5 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import app from '../app.js';
 import { prisma } from '../config/database.js';
 
@@ -2858,7 +2859,6 @@ describe('API Endpoints', () => {
 
       it('should reject request with expired token', async () => {
         // Create an expired token (exp in the past)
-        const jwt = require('jsonwebtoken');
         const expiredToken = jwt.sign(
           { userId: 'test-id', email: 'test@test.com', role: 'CUSTOMER' },
           process.env.JWT_SECRET || 'secret',
@@ -2874,7 +2874,6 @@ describe('API Endpoints', () => {
       });
 
       it('should reject request when user not found', async () => {
-        const jwt = require('jsonwebtoken');
         const tokenForNonExistentUser = jwt.sign(
           { userId: 'non-existent-user-id', email: 'ghost@test.com', role: 'CUSTOMER' },
           process.env.JWT_SECRET || 'secret',
@@ -2902,7 +2901,6 @@ describe('API Endpoints', () => {
           },
         });
 
-        const jwt = require('jsonwebtoken');
         const tokenForInactiveUser = jwt.sign(
           { userId: inactiveUser.id, email: inactiveUser.email, role: 'CUSTOMER' },
           process.env.JWT_SECRET || 'secret',
@@ -2960,7 +2958,6 @@ describe('API Endpoints', () => {
           },
         });
 
-        const jwt = require('jsonwebtoken');
         const pendingProviderToken = jwt.sign(
           { userId: pendingUser.id, email: pendingUser.email, role: 'PROVIDER' },
           process.env.JWT_SECRET || 'secret',
