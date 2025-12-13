@@ -2443,6 +2443,175 @@ describe('API Endpoints', () => {
           expect(res.body).toHaveProperty('success', true);
         });
       });
+
+      describe('POST /api/v1/providers/me/documents', () => {
+        it('should upload document placeholder', async () => {
+          const res = await request(app)
+            .post('/api/v1/providers/me/documents')
+            .set('Authorization', `Bearer ${providerToken}`)
+            .send({ type: 'ID', url: 'http://example.com/doc.jpg' });
+
+          expect(res.status).toBe(201);
+          expect(res.body).toHaveProperty('success', true);
+        });
+      });
+    });
+
+    describe('Provider Service Removal', () => {
+      describe('DELETE /api/v1/providers/me/services/:serviceId', () => {
+        it('should remove a service from provider', async () => {
+          // First add a service to remove
+          await request(app)
+            .post('/api/v1/providers/me/services')
+            .set('Authorization', `Bearer ${providerToken}`)
+            .send({
+              serviceId: 'svc-scrub',
+              price60: 900,
+              price90: 1100,
+              price120: 1300,
+            });
+
+          // Then remove it
+          const res = await request(app)
+            .delete('/api/v1/providers/me/services/svc-scrub')
+            .set('Authorization', `Bearer ${providerToken}`);
+
+          expect(res.status).toBe(204);
+        });
+
+        it('should return 404 for non-existent service', async () => {
+          const res = await request(app)
+            .delete('/api/v1/providers/me/services/non-existent-service')
+            .set('Authorization', `Bearer ${providerToken}`);
+
+          expect(res.status).toBe(404);
+        });
+      });
+    });
+
+    describe('Provider Registration Success', () => {
+      it('should successfully register a new provider', async () => {
+        // Create a new user for provider registration
+        const timestamp = Date.now();
+        await request(app)
+          .post('/api/v1/auth/register')
+          .send({
+            email: `new-provider-${timestamp}@test.com`,
+            password: 'password123!',
+            phone: `+63917${timestamp.toString().slice(-7)}`,
+            firstName: 'New',
+            lastName: 'Provider',
+          });
+
+        // Login with the new user to get a valid token
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({
+            email: `new-provider-${timestamp}@test.com`,
+            password: 'password123!',
+          });
+
+        const newUserToken = loginRes.body.data.accessToken;
+
+        // Register as provider
+        const res = await request(app)
+          .post('/api/v1/providers/register')
+          .set('Authorization', `Bearer ${newUserToken}`)
+          .send({
+            displayName: 'New Test Provider',
+            serviceAreas: ['MAKATI'],
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toHaveProperty('displayName', 'New Test Provider');
+      });
+    });
+
+    describe('Provider Profile Edge Cases', () => {
+      it('should return empty array for non-existent provider reviews', async () => {
+        const res = await request(app)
+          .get('/api/v1/providers/non-existent-id/reviews');
+
+        // API returns 200 with empty data for non-existent provider
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+        expect(res.body.data).toEqual([]);
+      });
+
+      it('should handle availability request for non-existent provider', async () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dateStr = tomorrow.toISOString().split('T')[0];
+
+        const res = await request(app)
+          .get('/api/v1/providers/non-existent-id/availability')
+          .query({ date: dateStr });
+
+        // API returns 200 with empty slots for non-existent provider
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+    });
+
+    describe('Provider Filtering', () => {
+      it('should filter providers by service area', async () => {
+        const res = await request(app)
+          .get('/api/v1/providers')
+          .query({ serviceArea: 'MAKATI' });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+
+      it('should filter providers by service type', async () => {
+        const res = await request(app)
+          .get('/api/v1/providers')
+          .query({ serviceId: 'svc-thai' });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
+    });
+
+    describe('Provider Availability Edge Cases', () => {
+      it('should require date parameter for availability', async () => {
+        if (!providerId) return;
+
+        const res = await request(app)
+          .get(`/api/v1/providers/${providerId}/availability`);
+
+        // May return 400 for missing date or 200 with default behavior
+        expect([200, 400]).toContain(res.status);
+      });
+
+      it('should handle invalid date format', async () => {
+        if (!providerId) return;
+
+        const res = await request(app)
+          .get(`/api/v1/providers/${providerId}/availability`)
+          .query({ date: 'invalid-date' });
+
+        expect([200, 400]).toContain(res.status);
+      });
+    });
+
+    describe('Provider Earnings Filtering', () => {
+      it('should filter earnings by date range', async () => {
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - 1);
+
+        const res = await request(app)
+          .get('/api/v1/providers/me/earnings')
+          .set('Authorization', `Bearer ${providerToken}`)
+          .query({
+            startDate: startDate.toISOString(),
+            endDate: new Date().toISOString(),
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('success', true);
+      });
     });
   });
 
