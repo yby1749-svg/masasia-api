@@ -2401,7 +2401,6 @@ describe('API Endpoints', () => {
   describe('Report Routes', () => {
     const customerEmail = 'customer@test.com';
     const customerPassword = 'customer123!';
-    const providerEmail = 'provider@test.com';
     let customerToken: string;
     let customerId: string;
     let providerId: string;
