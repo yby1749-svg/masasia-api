@@ -197,6 +197,130 @@ npm run db:seed        # 시드 데이터 삽입
 npm run db:studio      # Prisma Studio (DB GUI)
 ```
 
+## ☁️ AWS Deployment Setup
+
+### Prerequisites
+
+1. AWS Account with appropriate permissions
+2. AWS CLI installed and configured
+3. GitHub repository with Actions enabled
+
+### 1. Create AWS Resources
+
+```bash
+# Create ECR Repository
+aws ecr create-repository --repository-name callmsg-api --region ap-southeast-1
+
+# Create ECS Cluster
+aws ecs create-cluster --cluster-name callmsg-cluster --region ap-southeast-1
+```
+
+### 2. Set Up RDS PostgreSQL
+
+```bash
+# Create RDS instance (or use AWS Console)
+aws rds create-db-instance \
+  --db-instance-identifier callmsg-db \
+  --db-instance-class db.t3.micro \
+  --engine postgres \
+  --engine-version 15 \
+  --master-username callmsg \
+  --master-user-password <your-password> \
+  --allocated-storage 20 \
+  --region ap-southeast-1
+```
+
+### 3. Set Up ElastiCache Redis
+
+```bash
+# Create Redis cluster (or use AWS Console)
+aws elasticache create-cache-cluster \
+  --cache-cluster-id callmsg-redis \
+  --cache-node-type cache.t3.micro \
+  --engine redis \
+  --num-cache-nodes 1 \
+  --region ap-southeast-1
+```
+
+### 4. Configure GitHub Secrets
+
+Add these secrets to your GitHub repository (**Settings → Secrets and variables → Actions**):
+
+| Secret | Description |
+|--------|-------------|
+| `AWS_ACCESS_KEY_ID` | IAM user access key |
+| `AWS_SECRET_ACCESS_KEY` | IAM user secret key |
+
+### 5. Required IAM Permissions
+
+The IAM user needs these permissions:
+- `ecr:GetAuthorizationToken`
+- `ecr:BatchCheckLayerAvailability`
+- `ecr:GetDownloadUrlForLayer`
+- `ecr:BatchGetImage`
+- `ecr:PutImage`
+- `ecr:InitiateLayerUpload`
+- `ecr:UploadLayerPart`
+- `ecr:CompleteLayerUpload`
+- `ecs:DescribeTaskDefinition`
+- `ecs:RegisterTaskDefinition`
+- `ecs:UpdateService`
+- `ecs:DescribeServices`
+
+### 6. ECS Task Definition
+
+Create `.aws/task-definition.json`:
+
+```json
+{
+  "family": "callmsg-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::<account-id>:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "callmsg-api",
+      "image": "<account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/callmsg-api:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "PORT", "value": "3000" }
+      ],
+      "secrets": [
+        { "name": "DATABASE_URL", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/callmsg/DATABASE_URL" },
+        { "name": "REDIS_URL", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/callmsg/REDIS_URL" },
+        { "name": "JWT_SECRET", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/callmsg/JWT_SECRET" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/callmsg-api",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+```
+
+### 7. Deploy
+
+Once configured, pushes to `main` branch will automatically:
+1. Run tests
+2. Build Docker image
+3. Push to ECR
+4. Update ECS service
+
+Monitor deployments at: **GitHub → Actions → Deploy**
+
 ## 📝 라이선스
 
 Private - All Rights Reserved
