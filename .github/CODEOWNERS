@@ -1,0 +1,40 @@
+# ============================================================================
+# CODEOWNERS - Automatic PR Review Assignments
+# ============================================================================
+# Users/teams listed will be automatically requested for review when
+# someone opens a pull request that modifies code they own.
+#
+# Order matters - later matches take precedence
+# ============================================================================
+
+# Default owner for everything
+* @yby1749-svg
+
+# API Application
+/apps/api/ @yby1749-svg
+
+# Database & Prisma
+/apps/api/prisma/ @yby1749-svg
+
+# Authentication & Security
+/apps/api/src/middleware/auth* @yby1749-svg
+/apps/api/src/routes/auth* @yby1749-svg
+/apps/api/src/controllers/auth* @yby1749-svg
+
+# Admin functionality
+/apps/api/src/routes/admin* @yby1749-svg
+/apps/api/src/controllers/admin* @yby1749-svg
+
+# CI/CD & DevOps
+/.github/ @yby1749-svg
+/.aws/ @yby1749-svg
+/Dockerfile @yby1749-svg
+/docker-compose.yml @yby1749-svg
+
+# Documentation
+/README.md @yby1749-svg
+/docs/ @yby1749-svg
+
+# Package management
+/package.json @yby1749-svg
+/package-lock.json @yby1749-svg
