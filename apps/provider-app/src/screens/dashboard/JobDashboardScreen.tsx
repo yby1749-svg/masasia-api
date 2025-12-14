@@ -26,7 +26,7 @@ type NavigationProp = NativeStackNavigationProp<
 
 export function JobDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const {provider} = useAuthStore();
+  const {provider, user} = useAuthStore();
   const {
     pendingJobs,
     activeJob,
@@ -184,7 +184,7 @@ export function JobDashboardScreen() {
         {/* Header with Online Toggle */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello, {provider?.displayName}!</Text>
+            <Text style={styles.greeting}>Hello, {provider?.displayName || user?.firstName || 'Provider'}!</Text>
             <Text style={styles.subtitle}>
               {isOnline ? 'You are online' : 'You are offline'}
             </Text>

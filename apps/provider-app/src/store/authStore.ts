@@ -62,9 +62,19 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
 
       await setTokens({accessToken, refreshToken});
 
+      // Fetch provider profile after registration
+      let provider = null;
+      try {
+        const profileResponse = await providersApi.getProfile();
+        provider = profileResponse.data.data;
+      } catch {
+        // Provider profile might not exist yet, that's ok
+      }
+
       set({
         isAuthenticated: true,
         user: user as User,
+        provider,
         isLoading: false,
       });
     } catch (error: unknown) {
