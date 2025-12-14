@@ -323,4 +323,4 @@ Monitor deployments at: **GitHub → Actions → Deploy**
 
 ## 📝 라이선스
 
-Private - All Rights Reserved
+MIT License - see [LICENSE](LICENSE) for details
