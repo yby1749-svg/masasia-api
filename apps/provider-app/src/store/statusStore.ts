@@ -1,27 +1,30 @@
 import {create} from 'zustand';
-import Geolocation from '@react-native-community/geolocation';
 import {providersApi} from '@api';
-import {LOCATION_UPDATE_INTERVAL} from '@config/constants';
+import {
+  backgroundLocationService,
+  getCurrentPosition,
+} from '@services/backgroundLocation';
 
 interface StatusState {
   isOnline: boolean;
   currentLocation: {latitude: number; longitude: number} | null;
-  locationWatchId: number | null;
   isUpdating: boolean;
   error: string | null;
 
   goOnline: () => Promise<void>;
   goOffline: () => Promise<void>;
-  startLocationTracking: () => void;
+  startLocationTracking: (isActiveJob?: boolean) => void;
   stopLocationTracking: () => void;
+  setActiveJobMode: (isActive: boolean) => void;
   updateLocation: () => Promise<void>;
+  setCurrentLocation: (location: {latitude: number; longitude: number}) => void;
+  setLocationError: (error: string) => void;
   clearError: () => void;
 }
 
 export const useStatusStore = create<StatusState>((set, get) => ({
   isOnline: false,
   currentLocation: null,
-  locationWatchId: null,
   isUpdating: false,
   error: null,
 
@@ -31,8 +34,8 @@ export const useStatusStore = create<StatusState>((set, get) => ({
       await providersApi.updateStatus(true);
       set({isOnline: true, isUpdating: false});
 
-      // Start location tracking
-      get().startLocationTracking();
+      // Start background location tracking
+      get().startLocationTracking(false);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Failed to go online';
@@ -47,7 +50,7 @@ export const useStatusStore = create<StatusState>((set, get) => ({
       await providersApi.updateStatus(false);
       set({isOnline: false, isUpdating: false});
 
-      // Stop location tracking
+      // Stop background location tracking
       get().stopLocationTracking();
     } catch (error: unknown) {
       const message =
@@ -57,66 +60,47 @@ export const useStatusStore = create<StatusState>((set, get) => ({
     }
   },
 
-  startLocationTracking: () => {
-    const {locationWatchId} = get();
-
-    // Already tracking
-    if (locationWatchId !== null) {
+  startLocationTracking: (isActiveJob: boolean = false) => {
+    // Check if already tracking
+    if (backgroundLocationService.isTracking()) {
+      // Just update the mode if needed
+      if (isActiveJob) {
+        backgroundLocationService.setActiveJobMode(true);
+      }
       return;
     }
 
-    const watchId = Geolocation.watchPosition(
-      position => {
-        const {latitude, longitude} = position.coords;
-        set({currentLocation: {latitude, longitude}});
-
-        // Send to server
-        providersApi.updateLocation(latitude, longitude).catch(console.error);
-      },
-      error => {
-        console.error('Location error:', error);
-        set({error: error.message});
-      },
-      {
-        enableHighAccuracy: true,
-        distanceFilter: 50, // meters
-        interval: LOCATION_UPDATE_INTERVAL,
-        fastestInterval: LOCATION_UPDATE_INTERVAL / 2,
-      },
-    );
-
-    set({locationWatchId: watchId});
+    backgroundLocationService.startTracking(isActiveJob);
   },
 
   stopLocationTracking: () => {
-    const {locationWatchId} = get();
-    if (locationWatchId !== null) {
-      Geolocation.clearWatch(locationWatchId);
-      set({locationWatchId: null});
-    }
+    backgroundLocationService.stopTracking();
+  },
+
+  setActiveJobMode: (isActive: boolean) => {
+    backgroundLocationService.setActiveJobMode(isActive);
   },
 
   updateLocation: async () => {
-    return new Promise((resolve, reject) => {
-      Geolocation.getCurrentPosition(
-        async position => {
-          const {latitude, longitude} = position.coords;
-          set({currentLocation: {latitude, longitude}});
+    try {
+      const location = await getCurrentPosition();
+      set({currentLocation: location});
 
-          try {
-            await providersApi.updateLocation(latitude, longitude);
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        },
-        error => {
-          set({error: error.message});
-          reject(error);
-        },
-        {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
-      );
-    });
+      await providersApi.updateLocation(location.latitude, location.longitude);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to update location';
+      set({error: message});
+      throw error;
+    }
+  },
+
+  setCurrentLocation: (location: {latitude: number; longitude: number}) => {
+    set({currentLocation: location});
+  },
+
+  setLocationError: (error: string) => {
+    set({error});
   },
 
   clearError: () => set({error: null}),

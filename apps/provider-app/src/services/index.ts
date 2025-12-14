@@ -5,3 +5,7 @@ export {
   initializePushNotifications,
   setupBackgroundMessageHandler,
 } from './pushNotifications';
+export {
+  backgroundLocationService,
+  getCurrentPosition,
+} from './backgroundLocation';
