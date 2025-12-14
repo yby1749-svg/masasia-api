@@ -115,7 +115,7 @@ output "ssm_parameter_arns" {
 # Summary
 output "deployment_info" {
   description = "Deployment information"
-  value = <<-EOT
+  value       = <<-EOT
 
     ============================================
     Call MSG API - Deployment Complete
