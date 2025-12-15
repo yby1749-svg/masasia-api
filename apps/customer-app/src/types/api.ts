@@ -147,11 +147,13 @@ export type BookingStatus =
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 
+export type PaymentMethodType = 'CARD' | 'GCASH' | 'PAYMAYA' | 'CASH';
+
 export interface Payment {
   id: string;
   bookingId: string;
   amount: number;
-  method: 'CARD' | 'GCASH' | 'PAYMAYA' | 'CASH';
+  method: PaymentMethodType;
   status: PaymentStatus;
   paymongoIntentId?: string;
   paidAt?: string;

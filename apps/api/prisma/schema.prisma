@@ -86,11 +86,13 @@ enum PaymentStatus {
 }
 
 enum PaymentMethod {
+  CARD
   CREDIT_CARD
   DEBIT_CARD
   GCASH
   PAYMAYA
   GRAB_PAY
+  CASH
 }
 
 enum PayoutStatus {

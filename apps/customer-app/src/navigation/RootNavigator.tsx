@@ -6,6 +6,7 @@ import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import {useAuthStore} from '@store';
 import {AuthNavigator} from './AuthNavigator';
 import {MainTabNavigator} from './MainTabNavigator';
+import {linking} from './linking';
 import {colors} from '@config/theme';
 
 export type RootStackParamList = {
@@ -31,7 +32,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{headerShown: false}}>
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={MainTabNavigator} />

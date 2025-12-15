@@ -28,6 +28,7 @@ interface CreateBookingData {
   longitude?: number;
   travelFee?: number;
   customerNotes?: string;
+  paymentMethod?: 'CARD' | 'GCASH' | 'PAYMAYA' | 'CASH';
 }
 
 interface SOSData {
@@ -198,12 +199,29 @@ class BookingService {
       include: { service: true, provider: { include: { user: true } } },
     });
 
-    // Create payment intent for the booking
-    const paymentIntent = await paymentService.createPaymentIntent({
-      bookingId: booking.id,
-      amount: totalAmount,
-      description: `${booking.service.name} - ${data.duration} minutes`,
-    });
+    // Create payment based on payment method
+    let payment;
+    const paymentMethod = data.paymentMethod || 'CARD';
+
+    if (paymentMethod === 'CASH') {
+      // For cash payments, create a payment record without PayMongo
+      payment = await prisma.payment.create({
+        data: {
+          bookingId: booking.id,
+          amount: totalAmount,
+          method: 'CASH',
+          status: 'PENDING',
+        },
+      });
+    } else {
+      // For online payments (CARD, GCASH, PAYMAYA), create PayMongo intent
+      payment = await paymentService.createPaymentIntent({
+        bookingId: booking.id,
+        amount: totalAmount,
+        description: `${booking.service.name} - ${data.duration} minutes`,
+        method: paymentMethod,
+      });
+    }
 
     // Notify provider about new booking request
     const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'A customer';
@@ -228,7 +246,7 @@ class BookingService {
       data: { bookingId: booking.id, type: 'new_booking' },
     });
 
-    return { booking, payment: paymentIntent };
+    return { booking, payment };
   }
 
   async getBookingDetail(userId: string, bookingId: string) {

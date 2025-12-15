@@ -20,6 +20,7 @@ import {
   ServiceSelectionStep,
   DateTimeSelectionStep,
   AddressSelectionStep,
+  PaymentMethodStep,
   BookingSummaryStep,
 } from './steps';
 
@@ -33,9 +34,10 @@ const STEP_LABELS = [
   'Select Service',
   'Choose Time',
   'Your Address',
+  'Payment',
   'Confirm',
 ];
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 export function BookingFlowScreen() {
   const route = useRoute<RouteProps>();
@@ -119,6 +121,8 @@ export function BookingFlowScreen() {
       case 2:
         return <AddressSelectionStep />;
       case 3:
+        return <PaymentMethodStep />;
+      case 4:
         return <BookingSummaryStep />;
       default:
         return <ServiceSelectionStep />;

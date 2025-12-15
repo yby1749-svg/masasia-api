@@ -28,6 +28,7 @@ interface CreatePaymentIntentData {
   amount: number;
   description: string;
   metadata?: Record<string, string>;
+  method?: 'CARD' | 'GCASH' | 'PAYMAYA';
 }
 
 interface WebhookEvent {
@@ -76,7 +77,12 @@ class PaymentService {
     }
 
     // If PayMongo is not configured, create mock payment for development/testing
-    if (!PAYMONGO_SECRET_KEY || PAYMONGO_SECRET_KEY === '' || process.env.NODE_ENV === 'test') {
+    const isMockMode = !PAYMONGO_SECRET_KEY ||
+                       PAYMONGO_SECRET_KEY === '' ||
+                       PAYMONGO_SECRET_KEY.includes('xxx') ||
+                       process.env.NODE_ENV === 'test';
+
+    if (isMockMode) {
       const mockIntentId = `pi_mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       const payment = await prisma.payment.create({
@@ -85,7 +91,7 @@ class PaymentService {
           amount: data.amount,
           currency: 'PHP',
           paymongoIntentId: mockIntentId,
-          method: 'CREDIT_CARD',
+          method: data.method || 'CARD',
           status: 'PENDING',
         },
       });
@@ -93,10 +99,13 @@ class PaymentService {
       console.log(`[Payment] Created mock payment intent: ${mockIntentId}`);
 
       return {
+        id: payment.id,
         paymentId: payment.id,
         paymentIntentId: mockIntentId,
         clientKey: `pk_test_mock_${mockIntentId}`,
         status: 'awaiting_payment_method',
+        checkoutUrl: `${process.env.API_URL || 'http://localhost:3000'}/api/v1/payments/mock-checkout/${payment.id}`,
+        method: data.method || 'CARD',
       };
     }
 
@@ -133,16 +142,19 @@ class PaymentService {
           amount: data.amount,
           currency: 'PHP',
           paymongoIntentId: paymentIntent.id,
-          method: 'CREDIT_CARD', // Will be updated when payment is completed
+          method: data.method || 'CARD',
           status: 'PENDING',
         },
       });
 
       return {
+        id: payment.id,
         paymentId: payment.id,
         paymentIntentId: paymentIntent.id,
         clientKey: paymentIntent.attributes.client_key,
         status: paymentIntent.attributes.status,
+        checkoutUrl: paymentIntent.attributes.next_action?.redirect?.url,
+        method: data.method || 'CARD',
       };
     } catch (error) {
       console.error('PayMongo create intent error:', error);

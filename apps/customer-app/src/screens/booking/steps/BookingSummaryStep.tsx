@@ -13,7 +13,7 @@ import {useMutation} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {format, parseISO} from 'date-fns';
 
-import {bookingsApi} from '@api';
+import {bookingsApi, paymentsApi} from '@api';
 import {Button} from '@components';
 import {
   colors,
@@ -23,9 +23,16 @@ import {
   shadows,
 } from '@config/theme';
 import {useBookingStore} from '@store/bookingStore';
-import type {BookingsStackParamList} from '@navigation';
+import type {HomeStackParamList} from '@navigation';
 
-type NavigationProps = NativeStackNavigationProp<BookingsStackParamList>;
+type NavigationProps = NativeStackNavigationProp<HomeStackParamList>;
+
+const PAYMENT_METHOD_LABELS: Record<string, {name: string; icon: string}> = {
+  GCASH: {name: 'GCash', icon: 'wallet-outline'},
+  PAYMAYA: {name: 'PayMaya', icon: 'card-outline'},
+  CARD: {name: 'Credit/Debit Card', icon: 'card-outline'},
+  CASH: {name: 'Cash', icon: 'cash-outline'},
+};
 
 export function BookingSummaryStep() {
   const navigation = useNavigation<NavigationProps>();
@@ -34,6 +41,10 @@ export function BookingSummaryStep() {
   const [notes, setNotes] = useState(draft.notes || '');
 
   const price = calculatePrice();
+  const isCashPayment = draft.paymentMethod === 'CASH';
+  const paymentInfo = draft.paymentMethod
+    ? PAYMENT_METHOD_LABELS[draft.paymentMethod]
+    : null;
 
   const createBookingMutation = useMutation({
     mutationFn: async () => {
@@ -43,12 +54,14 @@ export function BookingSummaryStep() {
         !draft.duration ||
         !draft.scheduledDate ||
         !draft.scheduledTime ||
-        !draft.address
+        !draft.address ||
+        !draft.paymentMethod
       ) {
         throw new Error('Missing booking information');
       }
 
-      const response = await bookingsApi.createBooking({
+      // Create the booking
+      const bookingResponse = await bookingsApi.createBooking({
         providerId: draft.provider.id,
         serviceId: draft.service.id,
         duration: draft.duration,
@@ -60,26 +73,61 @@ export function BookingSummaryStep() {
         notes: notes.trim() || undefined,
       });
 
-      return response.data.data;
-    },
-    onSuccess: booking => {
-      clearDraft();
-      Alert.alert(
-        'Booking Confirmed!',
-        'Your booking has been submitted successfully.',
-        [
-          {
-            text: 'View Booking',
-            onPress: () => {
-              // Navigate to BookingDetail in the Bookings tab
-              navigation.getParent()?.navigate('BookingsTab', {
-                screen: 'BookingDetail',
-                params: {bookingId: booking.id},
-              });
-            },
-          },
-        ],
+      const booking = bookingResponse.data.data;
+
+      // For cash payments, return booking directly
+      if (isCashPayment) {
+        return {booking, requiresOnlinePayment: false};
+      }
+
+      // For online payments, create payment intent
+      const paymentResponse = await paymentsApi.createIntent(
+        booking.id,
+        draft.paymentMethod,
       );
+
+      return {
+        booking,
+        paymentIntent: paymentResponse.data.data,
+        requiresOnlinePayment: true,
+      };
+    },
+    onSuccess: result => {
+      if (!result.requiresOnlinePayment) {
+        // Cash payment - go directly to booking detail
+        clearDraft();
+        Alert.alert(
+          'Booking Confirmed!',
+          'Your booking has been submitted. Please prepare payment for service day.',
+          [
+            {
+              text: 'View Booking',
+              onPress: () => {
+                navigation.getParent()?.navigate('BookingsTab', {
+                  screen: 'BookingDetail',
+                  params: {bookingId: result.booking.id},
+                });
+              },
+            },
+          ],
+        );
+      } else {
+        // Online payment - navigate to payment WebView
+        const checkoutUrl = result.paymentIntent?.checkoutUrl;
+        if (checkoutUrl) {
+          navigation.navigate('PaymentWebView', {
+            bookingId: result.booking.id,
+            paymentIntentId: result.paymentIntent!.id,
+            checkoutUrl,
+          });
+        } else {
+          // If no checkout URL, show error
+          Alert.alert(
+            'Payment Error',
+            'Unable to initiate payment. Please try again.',
+          );
+        }
+      }
     },
     onError: (error: any) => {
       const message =
@@ -102,7 +150,7 @@ export function BookingSummaryStep() {
     }
   };
 
-  if (!draft.provider || !draft.service || !draft.address) {
+  if (!draft.provider || !draft.service || !draft.address || !draft.paymentMethod) {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>Missing booking information</Text>
@@ -164,6 +212,22 @@ export function BookingSummaryStep() {
           <Text style={styles.cardSubvalue}>{draft.address.address}</Text>
         </View>
 
+        {/* Payment Method Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Icon
+              name={paymentInfo?.icon || 'card-outline'}
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={styles.cardTitle}>Payment Method</Text>
+          </View>
+          <Text style={styles.cardValue}>{paymentInfo?.name}</Text>
+          {isCashPayment && (
+            <Text style={styles.cardSubvalue}>Pay on service day</Text>
+          )}
+        </View>
+
         {/* Notes Input */}
         <View style={styles.notesSection}>
           <Text style={styles.notesLabel}>Notes for Provider (Optional)</Text>
@@ -207,7 +271,7 @@ export function BookingSummaryStep() {
             disabled={createBookingMutation.isPending}
           />
           <Button
-            title="Confirm Booking"
+            title={isCashPayment ? 'Confirm Booking' : 'Confirm & Pay'}
             onPress={handleConfirm}
             loading={createBookingMutation.isPending}
             style={styles.confirmButton}

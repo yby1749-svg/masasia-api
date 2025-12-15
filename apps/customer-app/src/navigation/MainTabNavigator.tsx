@@ -9,6 +9,8 @@ import {ProviderDetailScreen} from '@screens/home/ProviderDetailScreen';
 import {BookingListScreen} from '@screens/booking/BookingListScreen';
 import {BookingDetailScreen} from '@screens/booking/BookingDetailScreen';
 import {BookingFlowScreen} from '@screens/booking/BookingFlowScreen';
+import {PaymentWebViewScreen} from '@screens/booking/PaymentWebViewScreen';
+import {PaymentCallbackScreen} from '@screens/booking/PaymentCallbackScreen';
 import {WriteReviewScreen} from '@screens/booking/WriteReviewScreen';
 import {InboxScreen} from '@screens/inbox/InboxScreen';
 import {ProfileScreen} from '@screens/profile/ProfileScreen';
@@ -21,6 +23,16 @@ export type HomeStackParamList = {
   ProviderList: {serviceId?: string};
   ProviderDetail: {providerId: string};
   BookingFlow: {providerId: string};
+  PaymentWebView: {
+    bookingId: string;
+    paymentIntentId: string;
+    checkoutUrl: string;
+  };
+  PaymentCallback: {
+    status?: string;
+    payment_intent_id?: string;
+    booking_id?: string;
+  };
 };
 
 export type BookingsStackParamList = {
@@ -66,6 +78,16 @@ function HomeStackNavigator() {
         name="BookingFlow"
         component={BookingFlowScreen}
         options={{title: 'Book Appointment'}}
+      />
+      <HomeStack.Screen
+        name="PaymentWebView"
+        component={PaymentWebViewScreen}
+        options={{title: 'Complete Payment'}}
+      />
+      <HomeStack.Screen
+        name="PaymentCallback"
+        component={PaymentCallbackScreen}
+        options={{headerShown: false}}
       />
     </HomeStack.Navigator>
   );

@@ -13,9 +13,10 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {format} from 'date-fns';
 
-import {bookingsApi} from '@api';
+import {bookingsApi, paymentsApi} from '@api';
 import {Button} from '@components';
 import {useUIStore} from '@store';
+import type {PaymentMethodType} from '@types';
 import {
   colors,
   typography,
@@ -95,6 +96,41 @@ export function BookingDetailScreen() {
   const canCancel = ['PENDING', 'CONFIRMED'].includes(booking.status);
   const canReview =
     booking.status === 'COMPLETED' && !booking.review && booking.provider;
+  const canPay =
+    ['PENDING', 'CONFIRMED'].includes(booking.status) &&
+    booking.payment?.status !== 'PAID' &&
+    booking.payment?.method !== 'CASH';
+
+  const paymentMutation = useMutation({
+    mutationFn: async () => {
+      // Create a new payment intent for online payment
+      const method: PaymentMethodType = booking.payment?.method || 'CARD';
+      const response = await paymentsApi.createIntent(booking.id, method);
+      return response.data.data;
+    },
+    onSuccess: paymentIntent => {
+      if (paymentIntent.checkoutUrl) {
+        // Navigate to payment WebView
+        navigation.getParent()?.navigate('HomeTab', {
+          screen: 'PaymentWebView',
+          params: {
+            bookingId: booking.id,
+            paymentIntentId: paymentIntent.id,
+            checkoutUrl: paymentIntent.checkoutUrl,
+          },
+        });
+      } else {
+        showError('Payment Error', 'Unable to initiate payment');
+      }
+    },
+    onError: () => {
+      showError('Payment Error', 'Failed to initiate payment. Please try again.');
+    },
+  });
+
+  const handlePayNow = () => {
+    paymentMutation.mutate();
+  };
 
   const handleWriteReview = () => {
     if (booking.provider) {
@@ -218,8 +254,16 @@ export function BookingDetailScreen() {
         </View>
       </View>
 
-      {(canCancel || canReview) && (
+      {(canCancel || canReview || canPay) && (
         <View style={styles.footer}>
+          {canPay && (
+            <Button
+              title="Pay Now"
+              onPress={handlePayNow}
+              loading={paymentMutation.isPending}
+              style={styles.payButton}
+            />
+          )}
           {canReview && (
             <Button
               title="Write Review"
@@ -369,6 +413,9 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     gap: spacing.md,
+  },
+  payButton: {
+    marginBottom: 0,
   },
   reviewButton: {
     marginBottom: 0,

@@ -5,6 +5,7 @@ import type {
   ProviderDetail,
   Service,
   Address,
+  PaymentMethodType,
 } from '@types';
 
 interface BookingDraft {
@@ -15,6 +16,7 @@ interface BookingDraft {
   scheduledTime?: string;
   address?: Address;
   notes?: string;
+  paymentMethod?: PaymentMethodType;
 }
 
 interface ProviderLocation {
