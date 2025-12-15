@@ -86,8 +86,8 @@ export function BookingListScreen() {
             color={colors.textSecondary}
           />
           <Text style={styles.infoText}>
-            {format(new Date(item.scheduledDate), 'MMM d, yyyy')} at{' '}
-            {item.scheduledTime}
+            {format(new Date(item.scheduledAt), 'MMM d, yyyy')} at{' '}
+            {format(new Date(item.scheduledAt), 'h:mm a')}
           </Text>
         </View>
         <View style={styles.infoRow}>
@@ -101,7 +101,7 @@ export function BookingListScreen() {
             color={colors.textSecondary}
           />
           <Text style={styles.infoText} numberOfLines={1}>
-            {item.address}
+            {item.addressText}
           </Text>
         </View>
       </View>

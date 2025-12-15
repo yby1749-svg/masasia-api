@@ -94,23 +94,26 @@ export interface Address {
 
 export interface Booking {
   id: string;
+  bookingNumber: string;
   customerId: string;
   providerId?: string;
   serviceId: string;
   status: BookingStatus;
-  scheduledDate: string;
-  scheduledTime: string;
+  scheduledAt: string;
   duration: 90 | 120;
-  address: string;
+  addressText: string;
+  addressNotes?: string;
   latitude: number;
   longitude: number;
-  notes?: string;
-  price: number;
-  serviceFee: number;
+  serviceAmount: number;
+  travelFee: number;
+  discount: number;
   totalAmount: number;
-  paymentStatus: PaymentStatus;
+  platformFee: number;
+  providerEarning: number;
+  customerNotes?: string;
   createdAt: string;
-  confirmedAt?: string;
+  acceptedAt?: string;
   completedAt?: string;
   cancelledAt?: string;
   cancelReason?: string;

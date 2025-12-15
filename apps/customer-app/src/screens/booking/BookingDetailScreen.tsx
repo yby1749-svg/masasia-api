@@ -127,12 +127,14 @@ export function BookingDetailScreen() {
               color={colors.textSecondary}
             />
             <Text style={styles.rowText}>
-              {format(new Date(booking.scheduledDate), 'EEEE, MMMM d, yyyy')}
+              {format(new Date(booking.scheduledAt), 'EEEE, MMMM d, yyyy')}
             </Text>
           </View>
           <View style={styles.row}>
             <Icon name="time-outline" size={20} color={colors.textSecondary} />
-            <Text style={styles.rowText}>{booking.scheduledTime}</Text>
+            <Text style={styles.rowText}>
+              {format(new Date(booking.scheduledAt), 'h:mm a')}
+            </Text>
           </View>
         </View>
       </View>
@@ -146,7 +148,7 @@ export function BookingDetailScreen() {
               size={20}
               color={colors.textSecondary}
             />
-            <Text style={styles.rowText}>{booking.address}</Text>
+            <Text style={styles.rowText}>{booking.addressText}</Text>
           </View>
         </View>
       </View>
@@ -180,14 +182,18 @@ export function BookingDetailScreen() {
         <View style={styles.card}>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Service</Text>
-            <Text style={styles.priceValue}>₱{booking.price.toFixed(2)}</Text>
-          </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Service Fee</Text>
             <Text style={styles.priceValue}>
-              ₱{booking.serviceFee.toFixed(2)}
+              ₱{booking.serviceAmount?.toFixed(2) || '0.00'}
             </Text>
           </View>
+          {booking.travelFee > 0 && (
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Travel Fee</Text>
+              <Text style={styles.priceValue}>
+                ₱{booking.travelFee.toFixed(2)}
+              </Text>
+            </View>
+          )}
           <View style={[styles.priceRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>
@@ -201,12 +207,12 @@ export function BookingDetailScreen() {
                 styles.statusValue,
                 {
                   color:
-                    booking.paymentStatus === 'PAID'
+                    booking.payment?.status === 'PAID'
                       ? colors.success
                       : colors.warning,
                 },
               ]}>
-              {booking.paymentStatus}
+              {booking.payment?.status || 'PENDING'}
             </Text>
           </View>
         </View>
