@@ -1137,7 +1137,7 @@ describe('API Endpoints', () => {
       // Login as admin
       const adminRes = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+        .send({ email: 'admin@masasia.com', password: 'admin123!' });
       adminToken = adminRes.body.data.accessToken;
 
       // Login as customer (for access control tests)
@@ -3919,7 +3919,7 @@ describe('API Endpoints', () => {
         // Login as admin
         const loginRes = await request(app)
           .post('/api/v1/auth/login')
-          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+          .send({ email: 'admin@masasia.com', password: 'admin123!' });
         const adminToken = loginRes.body.data.accessToken;
 
         // Try to get a non-existent provider
@@ -3956,7 +3956,7 @@ describe('API Endpoints', () => {
         // Login as admin
         const loginRes = await request(app)
           .post('/api/v1/auth/login')
-          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+          .send({ email: 'admin@masasia.com', password: 'admin123!' });
         const adminToken = loginRes.body.data.accessToken;
 
         // Try to create a service with invalid data types
@@ -4015,7 +4015,7 @@ describe('API Endpoints', () => {
         // Login as admin
         const loginRes = await request(app)
           .post('/api/v1/auth/login')
-          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+          .send({ email: 'admin@masasia.com', password: 'admin123!' });
         const adminToken = loginRes.body.data.accessToken;
 
         // Try to update a non-existent service
@@ -4032,7 +4032,7 @@ describe('API Endpoints', () => {
         // Login as admin
         const loginRes = await request(app)
           .post('/api/v1/auth/login')
-          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+          .send({ email: 'admin@masasia.com', password: 'admin123!' });
         const adminToken = loginRes.body.data.accessToken;
 
         // Try to delete a non-existent service
@@ -4100,7 +4100,7 @@ describe('API Endpoints', () => {
         // Login as admin
         const loginRes = await request(app)
           .post('/api/v1/auth/login')
-          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+          .send({ email: 'admin@masasia.com', password: 'admin123!' });
         const adminToken = loginRes.body.data.accessToken;
 
         // Try to create a promotion with invalid date format
@@ -4197,7 +4197,7 @@ describe('API Endpoints', () => {
         // Login as admin
         const loginRes = await request(app)
           .post('/api/v1/auth/login')
-          .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+          .send({ email: 'admin@masasia.com', password: 'admin123!' });
         const adminToken = loginRes.body.data.accessToken;
 
         const res = await request(app)
@@ -6667,7 +6667,7 @@ describe('API Endpoints', () => {
         beforeAll(async () => {
           const loginRes = await request(app)
             .post('/api/v1/auth/login')
-            .send({ email: 'admin@callmsg.com', password: 'admin123!' });
+            .send({ email: 'admin@masasia.com', password: 'admin123!' });
           adminToken = loginRes.body.data.accessToken;
         });
 

@@ -81,9 +81,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: callmsg
-          POSTGRES_PASSWORD: callmsg_dev_password
-          POSTGRES_DB: callmsg_dev
+          POSTGRES_USER: masasia
+          POSTGRES_PASSWORD: masasia_dev_password
+          POSTGRES_DB: masasia_dev
         ports:
           - 5432:5432
         options: >-
@@ -122,19 +122,19 @@ jobs:
         run: npx prisma migrate deploy
         working-directory: apps/api
         env:
-          DATABASE_URL: postgresql://callmsg:callmsg_dev_password@localhost:5432/callmsg_dev
+          DATABASE_URL: postgresql://masasia:masasia_dev_password@localhost:5432/masasia_dev
 
       - name: Seed database
         run: npm run db:seed
         working-directory: apps/api
         env:
-          DATABASE_URL: postgresql://callmsg:callmsg_dev_password@localhost:5432/callmsg_dev
+          DATABASE_URL: postgresql://masasia:masasia_dev_password@localhost:5432/masasia_dev
 
       - name: Run tests with coverage
         run: npm test -- --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=json-summary
         working-directory: apps/api
         env:
-          DATABASE_URL: postgresql://callmsg:callmsg_dev_password@localhost:5432/callmsg_dev
+          DATABASE_URL: postgresql://masasia:masasia_dev_password@localhost:5432/masasia_dev
           REDIS_URL: redis://localhost:6379
           JWT_SECRET: test-jwt-secret-key-for-ci
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-for-ci

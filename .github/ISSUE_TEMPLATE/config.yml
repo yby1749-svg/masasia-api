@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Documentation
-    url: https://github.com/yby1749-svg/callmsg-api#readme
+    url: https://github.com/yby1749-svg/masasia-api#readme
     about: Check the README for setup and usage instructions
   - name: API Docs
     url: http://localhost:3000/api-docs

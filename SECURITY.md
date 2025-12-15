@@ -13,7 +13,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 ### How to Report
 
 1. **Do NOT** open a public GitHub issue for security vulnerabilities
-2. Email security concerns to: security@callmsg.com
+2. Email security concerns to: security@masasia.com
 3. Include the following information:
    - Description of the vulnerability
    - Steps to reproduce
@@ -74,6 +74,6 @@ Currently, we do not offer a bug bounty program. However, we appreciate responsi
 ## Contact
 
 For security-related inquiries:
-- Email: security@callmsg.com
+- Email: security@masasia.com
 
-Thank you for helping keep Call MSG secure!
+Thank you for helping keep MASASIA secure!

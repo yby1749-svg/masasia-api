@@ -1,8 +1,8 @@
-# Call MSG - On-Demand Massage Platform
+# MASASIA - On-Demand Massage Platform
 
-[![CI](https://github.com/yby1749-svg/callmsg-api/actions/workflows/ci.yml/badge.svg)](https://github.com/yby1749-svg/callmsg-api/actions/workflows/ci.yml)
-[![Terraform](https://img.shields.io/badge/Terraform-validated-844FBA?logo=terraform)](https://github.com/yby1749-svg/callmsg-api/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/Coverage-94.54%25-brightgreen)](https://github.com/yby1749-svg/callmsg-api)
+[![CI](https://github.com/yby1749-svg/masasia-api/actions/workflows/ci.yml/badge.svg)](https://github.com/yby1749-svg/masasia-api/actions/workflows/ci.yml)
+[![Terraform](https://img.shields.io/badge/Terraform-validated-844FBA?logo=terraform)](https://github.com/yby1749-svg/masasia-api/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/Coverage-94.54%25-brightgreen)](https://github.com/yby1749-svg/masasia-api)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > 필리핀 메트로 마닐라 대상 온디맨드 출장 마사지 플랫폼
@@ -10,7 +10,7 @@
 ## 📋 프로젝트 구조
 
 ```
-callmsg/
+masasia/
 ├── apps/
 │   ├── api/                    # Backend API (Node.js/Express)
 │   │   ├── src/
@@ -44,7 +44,7 @@ callmsg/
 ```bash
 # 저장소 클론
 git clone <repository-url>
-cd callmsg
+cd masasia
 
 # Docker로 PostgreSQL & Redis 실행
 docker-compose up -d
@@ -80,7 +80,7 @@ npm run api:dev
 
 | 역할 | 이메일 | 비밀번호 |
 |------|--------|----------|
-| Admin | admin@callmsg.com | admin123! |
+| Admin | admin@masasia.com | admin123! |
 | Customer | customer@test.com | customer123! |
 | Provider | provider@test.com | provider123! |
 
@@ -212,10 +212,10 @@ npm run db:studio      # Prisma Studio (DB GUI)
 
 ```bash
 # Create ECR Repository
-aws ecr create-repository --repository-name callmsg-api --region ap-southeast-1
+aws ecr create-repository --repository-name masasia-api --region ap-southeast-1
 
 # Create ECS Cluster
-aws ecs create-cluster --cluster-name callmsg-cluster --region ap-southeast-1
+aws ecs create-cluster --cluster-name masasia-cluster --region ap-southeast-1
 ```
 
 ### 2. Set Up RDS PostgreSQL
@@ -223,11 +223,11 @@ aws ecs create-cluster --cluster-name callmsg-cluster --region ap-southeast-1
 ```bash
 # Create RDS instance (or use AWS Console)
 aws rds create-db-instance \
-  --db-instance-identifier callmsg-db \
+  --db-instance-identifier masasia-db \
   --db-instance-class db.t3.micro \
   --engine postgres \
   --engine-version 15 \
-  --master-username callmsg \
+  --master-username masasia \
   --master-user-password <your-password> \
   --allocated-storage 20 \
   --region ap-southeast-1
@@ -238,7 +238,7 @@ aws rds create-db-instance \
 ```bash
 # Create Redis cluster (or use AWS Console)
 aws elasticache create-cache-cluster \
-  --cache-cluster-id callmsg-redis \
+  --cache-cluster-id masasia-redis \
   --cache-node-type cache.t3.micro \
   --engine redis \
   --num-cache-nodes 1 \
@@ -276,7 +276,7 @@ Create `.aws/task-definition.json`:
 
 ```json
 {
-  "family": "callmsg-api",
+  "family": "masasia-api",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
@@ -284,8 +284,8 @@ Create `.aws/task-definition.json`:
   "executionRoleArn": "arn:aws:iam::<account-id>:role/ecsTaskExecutionRole",
   "containerDefinitions": [
     {
-      "name": "callmsg-api",
-      "image": "<account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/callmsg-api:latest",
+      "name": "masasia-api",
+      "image": "<account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/masasia-api:latest",
       "portMappings": [
         {
           "containerPort": 3000,
@@ -297,14 +297,14 @@ Create `.aws/task-definition.json`:
         { "name": "PORT", "value": "3000" }
       ],
       "secrets": [
-        { "name": "DATABASE_URL", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/callmsg/DATABASE_URL" },
-        { "name": "REDIS_URL", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/callmsg/REDIS_URL" },
-        { "name": "JWT_SECRET", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/callmsg/JWT_SECRET" }
+        { "name": "DATABASE_URL", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/masasia/DATABASE_URL" },
+        { "name": "REDIS_URL", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/masasia/REDIS_URL" },
+        { "name": "JWT_SECRET", "valueFrom": "arn:aws:ssm:ap-southeast-1:<account-id>:parameter/masasia/JWT_SECRET" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/callmsg-api",
+          "awslogs-group": "/ecs/masasia-api",
           "awslogs-region": "ap-southeast-1",
           "awslogs-stream-prefix": "ecs"
         }

@@ -29,7 +29,7 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
 
 # Store JWT secrets in Parameter Store
 resource "aws_ssm_parameter" "jwt_secret" {
-  name        = "/callmsg/${var.environment}/JWT_SECRET"
+  name        = "/masasia/${var.environment}/JWT_SECRET"
   description = "JWT secret key"
   type        = "SecureString"
   value       = var.jwt_secret
@@ -40,7 +40,7 @@ resource "aws_ssm_parameter" "jwt_secret" {
 }
 
 resource "aws_ssm_parameter" "jwt_refresh_secret" {
-  name        = "/callmsg/${var.environment}/JWT_REFRESH_SECRET"
+  name        = "/masasia/${var.environment}/JWT_REFRESH_SECRET"
   description = "JWT refresh token secret"
   type        = "SecureString"
   value       = var.jwt_refresh_secret
@@ -52,7 +52,7 @@ resource "aws_ssm_parameter" "jwt_refresh_secret" {
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "main" {
-  family                   = "callmsg-api"
+  family                   = "masasia-api"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.ecs_cpu
@@ -62,7 +62,7 @@ resource "aws_ecs_task_definition" "main" {
 
   container_definitions = jsonencode([
     {
-      name      = "callmsg-api"
+      name      = "masasia-api"
       image     = "${aws_ecr_repository.main.repository_url}:latest"
       essential = true
 
@@ -137,7 +137,7 @@ resource "aws_ecs_service" "main" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.main.arn
-    container_name   = "callmsg-api"
+    container_name   = "masasia-api"
     container_port   = var.container_port
   }
 

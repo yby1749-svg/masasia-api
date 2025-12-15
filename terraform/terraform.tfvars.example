@@ -11,8 +11,8 @@ availability_zones = ["ap-southeast-1a", "ap-southeast-1b"]
 
 # RDS Configuration
 db_instance_class = "db.t3.micro"  # Use db.t3.small for production
-db_name           = "callmsg"
-db_username       = "callmsg"
+db_name           = "masasia"
+db_username       = "masasia"
 db_password       = "CHANGE_ME_TO_A_STRONG_PASSWORD"
 
 # ElastiCache Configuration
@@ -30,6 +30,6 @@ jwt_refresh_secret = "your-super-secret-refresh-key-change-me-in-production"
 
 # Domain Configuration (Optional)
 # Uncomment and fill in if you have a domain
-# domain_name       = "api.callmsg.com"
+# domain_name       = "api.masasia.com"
 # create_dns_record = true
 # route53_zone_id   = "Z1234567890ABC"

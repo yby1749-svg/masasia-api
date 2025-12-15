@@ -37,7 +37,7 @@ resource "aws_elasticache_cluster" "main" {
 
 # Store Redis URL in Parameter Store
 resource "aws_ssm_parameter" "redis_url" {
-  name        = "/callmsg/${var.environment}/REDIS_URL"
+  name        = "/masasia/${var.environment}/REDIS_URL"
   description = "Redis connection URL"
   type        = "SecureString"
   value       = "redis://${aws_elasticache_cluster.main.cache_nodes[0].address}:${aws_elasticache_cluster.main.cache_nodes[0].port}"

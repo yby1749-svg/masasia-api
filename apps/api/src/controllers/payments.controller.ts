@@ -55,7 +55,7 @@ export const handleCallback = async (req: Request, res: Response): Promise<void>
   const { status, payment_intent_id } = req.query;
 
   // Redirect to mobile app with deep link
-  const appScheme = process.env.APP_SCHEME || 'callmsg';
+  const appScheme = process.env.APP_SCHEME || 'masasia';
   const redirectUrl = `${appScheme}://payment/callback?status=${status}&payment_intent_id=${payment_intent_id}`;
 
   res.redirect(redirectUrl);
@@ -68,7 +68,7 @@ export const createPaymentIntent = async (req: Request, res: Response, next: Nex
     const result = await paymentService.createPaymentIntent({
       bookingId: data.bookingId,
       amount: data.amount,
-      description: data.description || 'Call MSG Service Payment',
+      description: data.description || 'MASASIA Service Payment',
     });
     res.status(201).json({ success: true, data: result });
   } catch (error) {

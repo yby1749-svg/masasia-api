@@ -32,9 +32,9 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Call MSG needs your location to show your position on the map and help customers find you.</string>
+	<string>MASASIA needs your location to show your position on the map and help customers find you.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Call MSG needs background location access to track your position during active service appointments and update customers on your arrival.</string>
+	<string>MASASIA needs background location access to track your position during active service appointments and update customers on your arrival.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

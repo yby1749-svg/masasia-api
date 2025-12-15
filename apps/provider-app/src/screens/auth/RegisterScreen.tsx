@@ -72,7 +72,7 @@ export function RegisterScreen() {
       Toast.show({
         type: 'success',
         text1: 'Registration Successful',
-        text2: 'Welcome to Call MSG Provider!',
+        text2: 'Welcome to MASASIA Provider!',
       });
     } catch {
       Toast.show({

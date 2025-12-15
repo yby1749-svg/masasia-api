@@ -60,7 +60,7 @@ resource "aws_db_instance" "main" {
 
 # Store database URL in Parameter Store
 resource "aws_ssm_parameter" "database_url" {
-  name        = "/callmsg/${var.environment}/DATABASE_URL"
+  name        = "/masasia/${var.environment}/DATABASE_URL"
   description = "PostgreSQL connection URL"
   type        = "SecureString"
   value       = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.main.endpoint}/${var.db_name}?schema=public"

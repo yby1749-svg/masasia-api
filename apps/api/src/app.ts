@@ -1,5 +1,5 @@
 // ============================================================================
-// Call MSG API - Express App Configuration
+// MASASIA API - Express App Configuration
 // ============================================================================
 
 import express, { Application, Request, Response, NextFunction } from 'express';
@@ -83,7 +83,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Call MSG API Docs',
+  customSiteTitle: 'MASASIA API Docs',
 }));
 
 app.get('/api-docs.json', (_req: Request, res: Response) => {

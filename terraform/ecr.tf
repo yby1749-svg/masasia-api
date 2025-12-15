@@ -1,7 +1,7 @@
 # ECR Repository
 
 resource "aws_ecr_repository" "main" {
-  name                 = "callmsg-api"
+  name                 = "masasia-api"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {

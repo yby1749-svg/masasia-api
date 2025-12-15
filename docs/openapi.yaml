@@ -1,22 +1,22 @@
 # ============================================================================
-# Call MSG - API Design Document
+# MASASIA - API Design Document
 # ============================================================================
 # Version: 1.0
-# Base URL: https://api.callmsg.com/v1
+# Base URL: https://api.masasia.com/v1
 # ============================================================================
 
 openapi: 3.0.3
 info:
-  title: Call MSG API
+  title: MASASIA API
   description: On-Demand Massage Service Platform API
   version: 1.0.0
   contact:
-    email: api@callmsg.com
+    email: api@masasia.com
 
 servers:
-  - url: https://api.callmsg.com/v1
+  - url: https://api.masasia.com/v1
     description: Production
-  - url: https://staging-api.callmsg.com/v1
+  - url: https://staging-api.masasia.com/v1
     description: Staging
   - url: http://localhost:3000/v1
     description: Development

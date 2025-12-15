@@ -1,6 +1,6 @@
-# Contributing to Call MSG API
+# Contributing to MASASIA API
 
-Thank you for your interest in contributing to Call MSG! This guide will help you get started.
+Thank you for your interest in contributing to MASASIA! This guide will help you get started.
 
 ## Table of Contents
 
@@ -33,8 +33,8 @@ Thank you for your interest in contributing to Call MSG! This guide will help yo
 
 ```bash
 # Clone the repository
-git clone https://github.com/yby1749-svg/callmsg-api.git
-cd callmsg-api
+git clone https://github.com/yby1749-svg/masasia-api.git
+cd masasia-api
 
 # Install dependencies
 npm install

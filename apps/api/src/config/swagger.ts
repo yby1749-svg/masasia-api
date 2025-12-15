@@ -4,7 +4,7 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Call MSG API',
+      title: 'MASASIA API',
       version: '1.0.0',
       description: 'On-demand massage booking platform API',
       contact: {

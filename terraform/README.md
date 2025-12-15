@@ -1,6 +1,6 @@
 # Terraform Infrastructure
 
-This directory contains Terraform configurations for deploying Call MSG API to AWS.
+This directory contains Terraform configurations for deploying MASASIA API to AWS.
 
 ## Architecture
 
@@ -91,12 +91,12 @@ After infrastructure is created:
 aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.ap-southeast-1.amazonaws.com
 
 # Build and push image
-docker build -t callmsg-api ./apps/api
-docker tag callmsg-api:latest <account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/callmsg-api:latest
-docker push <account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/callmsg-api:latest
+docker build -t masasia-api ./apps/api
+docker tag masasia-api:latest <account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/masasia-api:latest
+docker push <account-id>.dkr.ecr.ap-southeast-1.amazonaws.com/masasia-api:latest
 
 # Force new deployment
-aws ecs update-service --cluster callmsg-prod-cluster --service callmsg-prod-service --force-new-deployment
+aws ecs update-service --cluster masasia-prod-cluster --service masasia-prod-service --force-new-deployment
 ```
 
 ## Files
@@ -176,7 +176,7 @@ db_instance_class = "db.t3.micro"
 
 1. Set domain variables:
 ```hcl
-domain_name       = "api.callmsg.com"
+domain_name       = "api.masasia.com"
 create_dns_record = true
 route53_zone_id   = "Z1234567890ABC"
 ```
@@ -200,7 +200,7 @@ terraform destroy
 ## Troubleshooting
 
 ### ECS tasks not starting
-- Check CloudWatch logs: `/ecs/callmsg-prod`
+- Check CloudWatch logs: `/ecs/masasia-prod`
 - Verify ECR image exists
 - Check security group rules
 
@@ -221,11 +221,11 @@ For team usage, configure S3 backend:
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "callmsg-terraform-state"
+    bucket         = "masasia-terraform-state"
     key            = "prod/terraform.tfstate"
     region         = "ap-southeast-1"
     encrypt        = true
-    dynamodb_table = "callmsg-terraform-locks"
+    dynamodb_table = "masasia-terraform-locks"
   }
 }
 ```

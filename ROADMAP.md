@@ -1,6 +1,6 @@
 # Roadmap
 
-This document outlines planned features and improvements for Call MSG API.
+This document outlines planned features and improvements for MASASIA API.
 
 ## v1.1.0 - Enhanced Features
 
@@ -120,8 +120,8 @@ This document outlines planned features and improvements for Call MSG API.
 
 Have a feature suggestion?
 
-1. Check existing [issues](https://github.com/yby1749-svg/callmsg-api/issues)
-2. Open a [feature request](https://github.com/yby1749-svg/callmsg-api/issues/new?template=feature_request.md)
+1. Check existing [issues](https://github.com/yby1749-svg/masasia-api/issues)
+2. Open a [feature request](https://github.com/yby1749-svg/masasia-api/issues/new?template=feature_request.md)
 3. Discuss in pull request
 
 ---

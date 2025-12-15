@@ -177,7 +177,7 @@ async function requestAndroidLocationPermission(): Promise<boolean> {
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       {
         title: 'Location Permission',
-        message: 'Call MSG needs access to your location to show your position to customers.',
+        message: 'MASASIA needs access to your location to show your position to customers.',
         buttonNeutral: 'Ask Me Later',
         buttonNegative: 'Cancel',
         buttonPositive: 'OK',
@@ -200,7 +200,7 @@ async function requestAndroidLocationPermission(): Promise<boolean> {
         {
           title: 'Background Location Permission',
           message:
-            'Call MSG needs background location access to track your position during active service appointments, even when the app is in the background.',
+            'MASASIA needs background location access to track your position during active service appointments, even when the app is in the background.',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',

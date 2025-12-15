@@ -118,7 +118,7 @@ output "deployment_info" {
   value       = <<-EOT
 
     ============================================
-    Call MSG API - Deployment Complete
+    MASASIA API - Deployment Complete
     ============================================
 
     API URL: ${var.domain_name != "" ? "https://${var.domain_name}" : "http://${aws_lb.main.dns_name}"}

@@ -1,5 +1,5 @@
 # ============================================================================
-# Call MSG - Docker Compose (Development)
+# MASASIA - Docker Compose (Development)
 # ============================================================================
 # Usage: docker-compose up -d
 # ============================================================================
@@ -10,14 +10,14 @@ services:
   # ==========================================================================
   postgres:
     image: postgres:15-alpine
-    container_name: callmsg-postgres
+    container_name: masasia-postgres
     restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: callmsg
+      POSTGRES_DB: masasia
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -31,7 +31,7 @@ services:
   # ==========================================================================
   redis:
     image: redis:7-alpine
-    container_name: callmsg-redis
+    container_name: masasia-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -50,14 +50,14 @@ services:
   #   build:
   #     context: ./apps/api
   #     dockerfile: Dockerfile
-  #   container_name: callmsg-api
+  #   container_name: masasia-api
   #   restart: unless-stopped
   #   ports:
   #     - "3000:3000"
   #   environment:
   #     NODE_ENV: development
   #     PORT: 3000
-  #     DATABASE_URL: postgresql://postgres:password@postgres:5432/callmsg?schema=public
+  #     DATABASE_URL: postgresql://postgres:password@postgres:5432/masasia?schema=public
   #     REDIS_URL: redis://redis:6379
   #     JWT_SECRET: dev-jwt-secret-change-in-production
   #     JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production
@@ -72,7 +72,7 @@ services:
   # ==========================================================================
   adminer:
     image: adminer
-    container_name: callmsg-adminer
+    container_name: masasia-adminer
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -84,7 +84,7 @@ services:
   # ==========================================================================
   redis-commander:
     image: rediscommander/redis-commander:latest
-    container_name: callmsg-redis-commander
+    container_name: masasia-redis-commander
     restart: unless-stopped
     ports:
       - "8081:8081"
@@ -99,4 +99,4 @@ volumes:
 
 networks:
   default:
-    name: callmsg-network
+    name: masasia-network

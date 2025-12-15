@@ -87,7 +87,7 @@ export async function sendPushToUser(
         priority: 'high',
         notification: {
           sound: 'default',
-          channelId: 'callmsg_default',
+          channelId: 'masasia_default',
         },
       },
       apns: {
@@ -180,7 +180,7 @@ export async function sendPushToUsers(
       priority: 'high',
       notification: {
         sound: 'default',
-        channelId: 'callmsg_default',
+        channelId: 'masasia_default',
       },
     },
     apns: {

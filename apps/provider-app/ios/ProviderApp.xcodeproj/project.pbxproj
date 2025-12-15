@@ -480,6 +480,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LM5ZHKAJ2C;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = ProviderApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -507,6 +508,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LM5ZHKAJ2C;
 				INFOPLIST_FILE = ProviderApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -598,7 +600,7 @@
 					"$(inherited)",
 					" ",
 				);
-				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/react-native";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;
 			};
@@ -669,7 +671,7 @@
 					"$(inherited)",
 					" ",
 				);
-				REACT_NATIVE_PATH = "${PODS_ROOT}/../../../../node_modules/react-native";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;
 				VALIDATE_PRODUCT = YES;

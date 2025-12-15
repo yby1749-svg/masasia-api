@@ -49,7 +49,7 @@ export const useLocationStore = create<LocationState>((set, _get) => ({
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
             title: 'Location Permission',
-            message: 'Call MSG needs your location to find nearby providers',
+            message: 'MASASIA needs your location to find nearby providers',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',

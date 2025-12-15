@@ -1,4 +1,4 @@
-# Call MSG API - Terraform Configuration
+# MASASIA API - Terraform Configuration
 # AWS Infrastructure for ECS Fargate Deployment
 
 terraform {
@@ -17,11 +17,11 @@ terraform {
 
   # Uncomment to use S3 backend for state management
   # backend "s3" {
-  #   bucket         = "callmsg-terraform-state"
+  #   bucket         = "masasia-terraform-state"
   #   key            = "prod/terraform.tfstate"
   #   region         = "ap-southeast-1"
   #   encrypt        = true
-  #   dynamodb_table = "callmsg-terraform-locks"
+  #   dynamodb_table = "masasia-terraform-locks"
   # }
 }
 
@@ -30,7 +30,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "callmsg"
+      Project     = "masasia"
       Environment = var.environment
       ManagedBy   = "terraform"
     }
@@ -43,9 +43,9 @@ resource "random_id" "suffix" {
 }
 
 locals {
-  name_prefix = "callmsg-${var.environment}"
+  name_prefix = "masasia-${var.environment}"
   common_tags = {
-    Project     = "callmsg"
+    Project     = "masasia"
     Environment = var.environment
   }
 }

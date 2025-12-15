@@ -1,5 +1,5 @@
 // ============================================================================
-// Call MSG API - Entry Point
+// MASASIA API - Entry Point
 // ============================================================================
 
 import 'dotenv/config';
@@ -41,7 +41,7 @@ async function main() {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🚀 Call MSG API Server                                  ║
+║   🚀 MASASIA API Server                                   ║
 ║                                                           ║
 ║   Environment: ${process.env.NODE_ENV?.padEnd(40)}║
 ║   Port: ${PORT.toString().padEnd(48)}║

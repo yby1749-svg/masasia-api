@@ -114,7 +114,7 @@ class PaymentService {
             },
             currency: 'PHP',
             description: data.description,
-            statement_descriptor: 'CALLMSG',
+            statement_descriptor: 'MASASIA',
             metadata: {
               booking_id: data.bookingId,
               customer_id: booking.customerId,

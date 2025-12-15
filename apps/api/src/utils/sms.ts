@@ -71,7 +71,7 @@ export async function sendSMS(
  * Send OTP SMS
  */
 export async function sendOTP(phone: string, otp: string): Promise<SMSResult> {
-  const body = `Your Call MSG verification code is: ${otp}. This code expires in 5 minutes.`;
+  const body = `Your MASASIA verification code is: ${otp}. This code expires in 5 minutes.`;
   return sendSMS(phone, body);
 }
 
@@ -91,7 +91,7 @@ export async function sendBookingConfirmation(
     dateStyle: 'medium',
     timeStyle: 'short',
   });
-  const body = `Call MSG Booking Confirmed!\nBooking #${data.bookingNumber}\nService: ${data.serviceName}\nProvider: ${data.providerName}\nScheduled: ${formattedDate}`;
+  const body = `MASASIA Booking Confirmed!\nBooking #${data.bookingNumber}\nService: ${data.serviceName}\nProvider: ${data.providerName}\nScheduled: ${formattedDate}`;
   return sendSMS(phone, body);
 }
 
@@ -105,7 +105,7 @@ export async function sendBookingAccepted(
     providerName: string;
   }
 ): Promise<SMSResult> {
-  const body = `Great news! Your Call MSG booking #${data.bookingNumber} has been accepted by ${data.providerName}. They will arrive at your scheduled time.`;
+  const body = `Great news! Your MASASIA booking #${data.bookingNumber} has been accepted by ${data.providerName}. They will arrive at your scheduled time.`;
   return sendSMS(phone, body);
 }
 
@@ -119,7 +119,7 @@ export async function sendProviderEnRoute(
     eta: number;
   }
 ): Promise<SMSResult> {
-  const body = `${data.providerName} is on the way! Estimated arrival: ${data.eta} minutes. Track their location in the Call MSG app.`;
+  const body = `${data.providerName} is on the way! Estimated arrival: ${data.eta} minutes. Track their location in the MASASIA app.`;
   return sendSMS(phone, body);
 }
 
@@ -134,7 +134,7 @@ export async function sendSOSAlert(
     locationUrl?: string;
   }
 ): Promise<SMSResult> {
-  let body = `EMERGENCY ALERT: ${data.userName} has triggered an SOS during their Call MSG service (Booking #${data.bookingNumber}).`;
+  let body = `EMERGENCY ALERT: ${data.userName} has triggered an SOS during their MASASIA service (Booking #${data.bookingNumber}).`;
   if (data.locationUrl) {
     body += ` Location: ${data.locationUrl}`;
   }
@@ -161,7 +161,7 @@ export async function sendBookingReminder(
  * Send password reset SMS
  */
 export async function sendPasswordReset(phone: string, resetCode: string): Promise<SMSResult> {
-  const body = `Your Call MSG password reset code is: ${resetCode}. This code expires in 1 hour. If you didn't request this, please ignore.`;
+  const body = `Your MASASIA password reset code is: ${resetCode}. This code expires in 1 hour. If you didn't request this, please ignore.`;
   return sendSMS(phone, body);
 }
 
@@ -169,7 +169,7 @@ export async function sendPasswordReset(phone: string, resetCode: string): Promi
  * Send welcome SMS to new user
  */
 export async function sendWelcomeSMS(phone: string, firstName: string): Promise<SMSResult> {
-  const body = `Welcome to Call MSG, ${firstName}! Your account is ready. Book professional massage services anytime. Download the app to get started.`;
+  const body = `Welcome to MASASIA, ${firstName}! Your account is ready. Book professional massage services anytime. Download the app to get started.`;
   return sendSMS(phone, body);
 }
 
@@ -180,7 +180,7 @@ export async function sendProviderApproved(
   phone: string,
   displayName: string
 ): Promise<SMSResult> {
-  const body = `Congratulations ${displayName}! Your Call MSG provider account has been approved. You can now start accepting bookings. Log in to set up your services and availability.`;
+  const body = `Congratulations ${displayName}! Your MASASIA provider account has been approved. You can now start accepting bookings. Log in to set up your services and availability.`;
   return sendSMS(phone, body);
 }
 
@@ -195,7 +195,7 @@ export async function sendPayoutConfirmation(
     referenceNumber?: string;
   }
 ): Promise<SMSResult> {
-  let body = `Call MSG Payout: PHP ${data.amount.toLocaleString()} has been sent via ${data.method}.`;
+  let body = `MASASIA Payout: PHP ${data.amount.toLocaleString()} has been sent via ${data.method}.`;
   if (data.referenceNumber) {
     body += ` Ref: ${data.referenceNumber}`;
   }

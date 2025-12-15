@@ -175,10 +175,10 @@ async function main() {
   const adminPassword = await bcrypt.hash('admin123!', 12);
   
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@callmsg.com' },
+    where: { email: 'admin@masasia.com' },
     update: {},
     create: {
-      email: 'admin@callmsg.com',
+      email: 'admin@masasia.com',
       phone: '+639000000001',
       phoneVerified: true,
       emailVerified: true,
@@ -342,7 +342,7 @@ async function main() {
     { key: 'cancellation_partial_refund_hours', value: '12', type: 'number' },
     { key: 'cancellation_partial_refund_percentage', value: '70', type: 'number' },
     { key: 'min_payout_amount', value: '500', type: 'number' },
-    { key: 'support_email', value: 'support@callmsg.com', type: 'string' },
+    { key: 'support_email', value: 'support@masasia.com', type: 'string' },
     { key: 'support_phone', value: '+639171234567', type: 'string' },
   ];
 
@@ -396,7 +396,7 @@ async function main() {
 
   console.log('\n🎉 Seeding completed!');
   console.log('\n📋 Test Accounts:');
-  console.log('   Admin:    admin@callmsg.com / admin123!');
+  console.log('   Admin:    admin@masasia.com / admin123!');
   console.log('   Customer: customer@test.com / customer123!');
   console.log('   Provider: provider@test.com / provider123!');
 }

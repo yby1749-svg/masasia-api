@@ -43,7 +43,7 @@ resource "aws_iam_role_policy" "ecs_ssm" {
           "ssm:GetParameter"
         ]
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:*:parameter/callmsg/${var.environment}/*"
+          "arn:aws:ssm:${var.aws_region}:*:parameter/masasia/${var.environment}/*"
         ]
       },
       {
@@ -95,7 +95,7 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
           "s3:DeleteObject"
         ]
         Resource = [
-          "arn:aws:s3:::callmsg-uploads-${var.environment}/*"
+          "arn:aws:s3:::masasia-uploads-${var.environment}/*"
         ]
       }
     ]
@@ -121,7 +121,7 @@ resource "aws_iam_role" "github_actions" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:yby1749-svg/callmsg-api:*"
+            "token.actions.githubusercontent.com:sub" = "repo:yby1749-svg/masasia-api:*"
           }
         }
       }
