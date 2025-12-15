@@ -61,6 +61,32 @@ export function BookingDetailScreen() {
     },
   });
 
+  const paymentMutation = useMutation({
+    mutationFn: async () => {
+      if (!booking) throw new Error('No booking');
+      const method: PaymentMethodType = (booking.payment?.method as PaymentMethodType) || 'CARD';
+      const response = await paymentsApi.createIntent(booking.id, method);
+      return response.data.data;
+    },
+    onSuccess: paymentIntent => {
+      if (paymentIntent.checkoutUrl && booking) {
+        navigation.getParent()?.navigate('HomeTab', {
+          screen: 'PaymentWebView',
+          params: {
+            bookingId: booking.id,
+            paymentIntentId: paymentIntent.id,
+            checkoutUrl: paymentIntent.checkoutUrl,
+          },
+        });
+      } else {
+        showError('Payment Error', 'Unable to initiate payment');
+      }
+    },
+    onError: () => {
+      showError('Payment Error', 'Failed to initiate payment. Please try again.');
+    },
+  });
+
   const handleCancel = () => {
     Alert.alert(
       'Cancel Booking',
@@ -100,33 +126,6 @@ export function BookingDetailScreen() {
     ['PENDING', 'CONFIRMED'].includes(booking.status) &&
     booking.payment?.status !== 'PAID' &&
     booking.payment?.method !== 'CASH';
-
-  const paymentMutation = useMutation({
-    mutationFn: async () => {
-      // Create a new payment intent for online payment
-      const method: PaymentMethodType = booking.payment?.method || 'CARD';
-      const response = await paymentsApi.createIntent(booking.id, method);
-      return response.data.data;
-    },
-    onSuccess: paymentIntent => {
-      if (paymentIntent.checkoutUrl) {
-        // Navigate to payment WebView
-        navigation.getParent()?.navigate('HomeTab', {
-          screen: 'PaymentWebView',
-          params: {
-            bookingId: booking.id,
-            paymentIntentId: paymentIntent.id,
-            checkoutUrl: paymentIntent.checkoutUrl,
-          },
-        });
-      } else {
-        showError('Payment Error', 'Unable to initiate payment');
-      }
-    },
-    onError: () => {
-      showError('Payment Error', 'Failed to initiate payment. Please try again.');
-    },
-  });
 
   const handlePayNow = () => {
     paymentMutation.mutate();
