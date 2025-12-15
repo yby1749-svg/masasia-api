@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import { authenticate, optionalAuth, requireProvider } from '../middleware/auth.js';
 import * as providerController from '../controllers/providers.controller.js';
+import * as shopsController from '../controllers/shops.controller.js';
 
 const router = Router();
 
@@ -188,6 +189,80 @@ router.get('/me/earnings/summary', authenticate, requireProvider, providerContro
 // Payouts
 router.get('/me/payouts', authenticate, requireProvider, providerController.getPayouts);
 router.post('/me/payouts', authenticate, requireProvider, providerController.requestPayout);
+
+// ============================================================================
+// SHOP MEMBERSHIP (Provider-side)
+// ============================================================================
+
+/**
+ * @swagger
+ * /providers/me/shop:
+ *   get:
+ *     summary: Get my shop membership info
+ *     tags: [Providers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Shop info (null if not in a shop)
+ */
+router.get('/me/shop', authenticate, requireProvider, shopsController.getProviderShop);
+
+/**
+ * @swagger
+ * /providers/me/shop-invitations:
+ *   get:
+ *     summary: Get pending shop invitations
+ *     tags: [Providers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of pending invitations
+ */
+router.get('/me/shop-invitations', authenticate, requireProvider, shopsController.getProviderInvitations);
+
+/**
+ * @swagger
+ * /providers/me/shop-invitations/{invitationId}/accept:
+ *   post:
+ *     summary: Accept shop invitation
+ *     tags: [Providers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Invitation accepted, joined shop
+ */
+router.post('/me/shop-invitations/:invitationId/accept', authenticate, requireProvider, shopsController.acceptInvitation);
+
+/**
+ * @swagger
+ * /providers/me/shop-invitations/{invitationId}/reject:
+ *   post:
+ *     summary: Reject shop invitation
+ *     tags: [Providers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Invitation rejected
+ */
+router.post('/me/shop-invitations/:invitationId/reject', authenticate, requireProvider, shopsController.rejectInvitation);
+
+/**
+ * @swagger
+ * /providers/me/leave-shop:
+ *   post:
+ *     summary: Leave current shop
+ *     tags: [Providers]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Left shop successfully
+ */
+router.post('/me/leave-shop', authenticate, requireProvider, shopsController.leaveShop);
 
 // ============================================================================
 // PUBLIC ROUTES WITH PARAMETERIZED providerId

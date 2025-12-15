@@ -261,14 +261,44 @@ class BookingService {
     }
     if (status === 'COMPLETED') {
       updateData.completedAt = new Date();
-      await prisma.provider.update({
+
+      // Get provider with shop info
+      const providerWithShop = await prisma.provider.findUnique({
         where: { id: provider.id },
-        data: {
-          balance: { increment: booking.providerEarning },
-          totalEarnings: { increment: booking.providerEarning },
-          completedBookings: { increment: 1 },
-        },
+        include: { shop: true },
       });
+
+      if (providerWithShop?.shopId && providerWithShop.shop?.status === 'APPROVED') {
+        // Shop-affiliated therapist: earnings go to shop
+        await prisma.shop.update({
+          where: { id: providerWithShop.shopId },
+          data: {
+            balance: { increment: booking.providerEarning },
+            totalEarnings: { increment: booking.providerEarning },
+          },
+        });
+
+        // Record shop earning in booking
+        updateData.shop = { connect: { id: providerWithShop.shopId } };
+        updateData.shopEarning = booking.providerEarning;
+
+        // Update provider's completed count only (no balance)
+        await prisma.provider.update({
+          where: { id: provider.id },
+          data: { completedBookings: { increment: 1 } },
+        });
+      } else {
+        // Individual provider: earnings go to provider (existing logic)
+        await prisma.provider.update({
+          where: { id: provider.id },
+          data: {
+            balance: { increment: booking.providerEarning },
+            totalEarnings: { increment: booking.providerEarning },
+            completedBookings: { increment: 1 },
+          },
+        });
+      }
+
       notificationType = 'SERVICE_COMPLETED';
       notificationTitle = 'Service Completed';
       notificationBody = `Your ${booking.service.name} session has been completed. Please leave a review!`;

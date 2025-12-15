@@ -26,6 +26,11 @@ export function ProfileScreen() {
 
   const menuItems = [
     {
+      icon: 'storefront-outline',
+      label: 'My Shop',
+      screen: 'MyShop' as const,
+    },
+    {
       icon: 'briefcase-outline',
       label: 'My Services',
       screen: 'Services' as const,

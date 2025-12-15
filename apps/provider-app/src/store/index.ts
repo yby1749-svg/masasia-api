@@ -4,3 +4,4 @@ export {useEarningsStore} from './earningsStore';
 export {useAvailabilityStore} from './availabilityStore';
 export {useStatusStore} from './statusStore';
 export {useNotificationStore} from './notificationStore';
+export {useProviderShopStore, useShopOwnerStore} from './shopStore';

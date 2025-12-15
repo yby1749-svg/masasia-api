@@ -4,3 +4,12 @@ export {providersApi} from './providers';
 export {bookingsApi} from './bookings';
 export {earningsApi} from './earnings';
 export {usersApi} from './users';
+export {providerShopApi, shopOwnerApi} from './shops';
+export type {
+  Shop,
+  ShopInvitation,
+  ShopTherapist,
+  ShopEarning,
+  ShopEarningsSummary,
+  ShopPayout,
+} from './shops';

@@ -234,6 +234,8 @@ export type ProfileStackParamList = {
   EditProfile: undefined;
   Services: undefined;
   Settings: undefined;
+  MyShop: undefined;
+  ShopInvitations: undefined;
 };
 
 export type MainTabParamList = {

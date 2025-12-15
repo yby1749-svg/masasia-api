@@ -22,6 +22,7 @@ enum UserRole {
   CUSTOMER
   PROVIDER
   ADMIN
+  SHOP_OWNER
 }
 
 enum UserStatus {
@@ -156,6 +157,21 @@ enum ServiceCategory {
   COMBINATION
 }
 
+enum ShopStatus {
+  PENDING       // 심사 대기
+  APPROVED      // 승인됨
+  SUSPENDED     // 정지됨
+  REJECTED      // 거절됨
+}
+
+enum ShopInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
 // ============================================================================
 // MODELS
 // ============================================================================
@@ -204,7 +220,8 @@ model User {
   reportsReceived   Report[]    @relation("Reported")
   notifications     Notification[]
   refreshTokens     RefreshToken[]
-  
+  ownedShop         Shop?       @relation("ShopOwner")
+
   @@index([email])
   @@index([phone])
   @@index([role, status])
@@ -309,10 +326,15 @@ model Provider {
   suspendedAt         DateTime?
   suspendedUntil      DateTime?
   suspendedReason     String?
-  
+
+  // 샵 소속
+  shopId              String?
+  shop                Shop?                @relation("ShopTherapists", fields: [shopId], references: [id])
+  shopJoinedAt        DateTime?
+
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
-  
+
   // Relations
   documents           ProviderDocument[]
   services            ProviderService[]
@@ -320,10 +342,12 @@ model Provider {
   bookings            Booking[]            @relation("ProviderBookings")
   payouts             Payout[]
   locationLogs        LocationLog[]
-  
+  shopInvitations     ShopInvitation[]
+
   @@index([status])
   @@index([onlineStatus])
   @@index([rating])
+  @@index([shopId])
 }
 
 // ----------------------------------------------------------------------------
@@ -488,21 +512,27 @@ model Booking {
   
   // 프로바이더 메모
   providerNotes   String?
-  
+
+  // 샵 수익 (샵 소속 테라피스트인 경우)
+  shopId          String?
+  shop            Shop?         @relation(fields: [shopId], references: [id])
+  shopEarning     Float?
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-  
+
   // Relations
   payment         Payment?
   review          Review?
   reports         Report[]
   locationLogs    LocationLog[]
-  
+
   @@index([customerId])
   @@index([providerId])
   @@index([status])
   @@index([scheduledAt])
   @@index([bookingNumber])
+  @@index([shopId])
 }
 
 // ----------------------------------------------------------------------------
@@ -790,6 +820,108 @@ model AdminLog {
   @@index([adminId])
   @@index([action])
   @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// Shop - 샵 (마사지 샵)
+// ----------------------------------------------------------------------------
+model Shop {
+  id                  String       @id @default(cuid())
+  ownerId             String       @unique
+  owner               User         @relation("ShopOwner", fields: [ownerId], references: [id])
+
+  name                String
+  description         String?
+  logoUrl             String?
+  phone               String?
+  email               String?
+
+  status              ShopStatus   @default(PENDING)
+
+  // 정산 정보
+  bankName            String?
+  bankAccountNumber   String?
+  bankAccountName     String?
+  gcashNumber         String?
+  paymayaNumber       String?
+
+  // 수익 잔액
+  balance             Float        @default(0)
+  totalEarnings       Float        @default(0)
+
+  // 심사 관련
+  approvedAt          DateTime?
+  approvedBy          String?
+  rejectedAt          DateTime?
+  rejectedReason      String?
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  // Relations
+  therapists          Provider[]   @relation("ShopTherapists")
+  invitations         ShopInvitation[]
+  payouts             ShopPayout[]
+  bookings            Booking[]
+
+  @@index([status])
+}
+
+// ----------------------------------------------------------------------------
+// ShopInvitation - 샵 초대
+// ----------------------------------------------------------------------------
+model ShopInvitation {
+  id               String               @id @default(cuid())
+  shopId           String
+  shop             Shop                 @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  targetEmail      String?              // 이메일로 초대
+  targetProviderId String?              // 기존 프로바이더 초대
+  targetProvider   Provider?            @relation(fields: [targetProviderId], references: [id])
+
+  inviteCode       String               @unique
+  message          String?
+  status           ShopInvitationStatus @default(PENDING)
+
+  respondedAt      DateTime?
+  expiresAt        DateTime
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([shopId])
+  @@index([inviteCode])
+  @@index([targetProviderId])
+}
+
+// ----------------------------------------------------------------------------
+// ShopPayout - 샵 정산/출금
+// ----------------------------------------------------------------------------
+model ShopPayout {
+  id              String       @id @default(cuid())
+  shopId          String
+  shop            Shop         @relation(fields: [shopId], references: [id])
+
+  amount          Float
+  fee             Float        @default(0)
+  netAmount       Float
+
+  method          PayoutMethod
+  accountInfo     String
+
+  status          PayoutStatus @default(PENDING)
+
+  processedAt     DateTime?
+  processedBy     String?
+  failedAt        DateTime?
+  failureReason   String?
+  referenceNumber String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([shopId])
+  @@index([status])
 }
 
 // ----------------------------------------------------------------------------

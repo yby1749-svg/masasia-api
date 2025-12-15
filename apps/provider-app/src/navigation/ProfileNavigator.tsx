@@ -3,6 +3,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {ProfileScreen} from '@screens/profile/ProfileScreen';
 import {ServicesScreen} from '@screens/profile/ServicesScreen';
 import {SettingsScreen} from '@screens/profile/SettingsScreen';
+import {MyShopScreen, ShopInvitationsScreen} from '@screens/shop';
 import type {ProfileStackParamList} from '@types';
 import {colors} from '@config/theme';
 
@@ -32,6 +33,16 @@ export function ProfileNavigator() {
         name="Settings"
         component={SettingsScreen}
         options={{title: 'Settings'}}
+      />
+      <Stack.Screen
+        name="MyShop"
+        component={MyShopScreen}
+        options={{title: 'My Shop'}}
+      />
+      <Stack.Screen
+        name="ShopInvitations"
+        component={ShopInvitationsScreen}
+        options={{title: 'Shop Invitations'}}
       />
     </Stack.Navigator>
   );

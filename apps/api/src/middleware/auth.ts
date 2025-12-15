@@ -174,3 +174,37 @@ export const requireProvider = async (
 
 // Require admin role
 export const requireAdmin = requireRole('ADMIN');
+
+// Require shop owner role and approved shop
+export const requireShopOwner = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  if (req.user.role !== 'SHOP_OWNER') {
+    res.status(403).json({ error: 'Shop owner access required' });
+    return;
+  }
+
+  const shop = await prisma.shop.findUnique({
+    where: { ownerId: req.user.id },
+    select: { id: true, status: true },
+  });
+
+  if (!shop) {
+    res.status(403).json({ error: 'Shop not found' });
+    return;
+  }
+
+  if (shop.status !== 'APPROVED') {
+    res.status(403).json({ error: 'Shop not approved' });
+    return;
+  }
+
+  next();
+};

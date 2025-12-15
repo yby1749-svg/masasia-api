@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import * as adminController from '../controllers/admin.controller.js';
+import * as shopsController from '../controllers/shops.controller.js';
 
 const router = Router();
 
@@ -301,6 +302,170 @@ router.post('/payouts/:payoutId/process', adminController.processPayout);
  *         description: Payout rejected
  */
 router.post('/payouts/:payoutId/reject', adminController.rejectPayout);
+
+// ============================================================================
+// SHOP MANAGEMENT
+// ============================================================================
+
+/**
+ * @swagger
+ * /admin/shops:
+ *   get:
+ *     summary: List all shops
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, APPROVED, SUSPENDED, REJECTED]
+ *     responses:
+ *       200:
+ *         description: List of shops
+ */
+router.get('/shops', shopsController.adminListShops);
+
+/**
+ * @swagger
+ * /admin/shops/{shopId}:
+ *   get:
+ *     summary: Get shop details
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Shop details
+ */
+router.get('/shops/:shopId', shopsController.adminGetShop);
+
+/**
+ * @swagger
+ * /admin/shops/{shopId}/approve:
+ *   post:
+ *     summary: Approve a shop
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Shop approved
+ */
+router.post('/shops/:shopId/approve', shopsController.adminApproveShop);
+
+/**
+ * @swagger
+ * /admin/shops/{shopId}/reject:
+ *   post:
+ *     summary: Reject a shop
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Shop rejected
+ */
+router.post('/shops/:shopId/reject', shopsController.adminRejectShop);
+
+/**
+ * @swagger
+ * /admin/shops/{shopId}/suspend:
+ *   post:
+ *     summary: Suspend a shop
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Shop suspended
+ */
+router.post('/shops/:shopId/suspend', shopsController.adminSuspendShop);
+
+/**
+ * @swagger
+ * /admin/shop-payouts:
+ *   get:
+ *     summary: List shop payouts
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+ *     responses:
+ *       200:
+ *         description: List of shop payouts
+ */
+router.get('/shop-payouts', shopsController.adminListShopPayouts);
+
+/**
+ * @swagger
+ * /admin/shop-payouts/{payoutId}/process:
+ *   post:
+ *     summary: Process a shop payout
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [referenceNumber]
+ *             properties:
+ *               referenceNumber:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Payout processed
+ */
+router.post('/shop-payouts/:payoutId/process', shopsController.adminProcessPayout);
+
+/**
+ * @swagger
+ * /admin/shop-payouts/{payoutId}/reject:
+ *   post:
+ *     summary: Reject a shop payout
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Payout rejected
+ */
+router.post('/shop-payouts/:payoutId/reject', shopsController.adminRejectPayout);
 
 /**
  * @swagger
