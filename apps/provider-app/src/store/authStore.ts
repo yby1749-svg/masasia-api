@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import {authApi, setTokens, clearTokens, providersApi} from '@api';
+import {authApi, setTokens, clearTokens, providersApi, usersApi} from '@api';
 import {socketService} from '../services/socket';
 import type {Provider, User} from '@types';
 
@@ -39,13 +39,18 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
 
       await setTokens({accessToken, refreshToken});
 
-      // Fetch provider profile
-      const profileResponse = await providersApi.getProfile();
+      // Shop owners don't have a provider profile
+      let provider = null;
+      if (user.role !== 'SHOP_OWNER') {
+        // Fetch provider profile for therapists
+        const profileResponse = await providersApi.getProfile();
+        provider = profileResponse.data.data;
+      }
 
       set({
         isAuthenticated: true,
         user: user as User,
-        provider: profileResponse.data.data,
+        provider,
         isLoading: false,
       });
 
@@ -106,15 +111,24 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
   loadProfile: async () => {
     set({isLoading: true});
     try {
-      const response = await providersApi.getProfile();
-      const provider = response.data.data;
+      // First try to get user info from the me endpoint
+      const meResponse = await usersApi.getProfile();
+      const user = meResponse.data.data as User;
 
-      // Extract user info from provider response
-      const user = provider?.user as User | undefined;
+      // Shop owners don't have a provider profile
+      let provider = null;
+      if (user.role !== 'SHOP_OWNER') {
+        try {
+          const response = await providersApi.getProfile();
+          provider = response.data.data;
+        } catch {
+          // Provider profile might not exist
+        }
+      }
 
       set({
         provider,
-        user: user || null,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
@@ -122,7 +136,7 @@ export const useAuthStore = create<AuthState>((set, _get) => ({
       // Connect socket (tokens already in storage from previous session)
       socketService.connect();
     } catch {
-      set({isLoading: false});
+      set({isLoading: false, isAuthenticated: false});
     }
   },
 

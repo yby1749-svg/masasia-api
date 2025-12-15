@@ -17,6 +17,7 @@ export const usersApi = {
         lastName: string;
         phone: string;
         avatarUrl?: string;
+        role: 'CUSTOMER' | 'PROVIDER' | 'ADMIN' | 'SHOP_OWNER';
       };
     }>('/users/me'),
 
