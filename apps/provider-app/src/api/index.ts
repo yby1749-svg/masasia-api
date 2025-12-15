@@ -5,6 +5,7 @@ export {bookingsApi} from './bookings';
 export {earningsApi} from './earnings';
 export {usersApi} from './users';
 export {providerShopApi, shopOwnerApi} from './shops';
+export {notificationsApi} from './notifications';
 export type {
   Shop,
   ShopInvitation,
@@ -13,3 +14,4 @@ export type {
   ShopEarningsSummary,
   ShopPayout,
 } from './shops';
+export type {NotificationItem} from './notifications';

@@ -137,3 +137,25 @@ export const reviewsApi = {
     comment?: string;
   }) => apiClient.post<{data: Review}>('/reviews', data),
 };
+
+// Notifications
+export const notificationsApi = {
+  getNotifications: (params?: {unreadOnly?: boolean; limit?: number}) =>
+    apiClient.get<{
+      data: Array<{
+        id: string;
+        userId: string;
+        type: string;
+        title: string;
+        body: string;
+        data?: Record<string, unknown>;
+        isRead: boolean;
+        createdAt: string;
+      }>;
+    }>('/notifications', {params}),
+
+  markAsRead: (notificationId: string) =>
+    apiClient.patch(`/notifications/${notificationId}/read`),
+
+  markAllAsRead: () => apiClient.patch('/notifications/read-all'),
+};

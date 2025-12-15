@@ -9,6 +9,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { paymentService } from './payments.service.js';
 import { notificationService } from './notifications.service.js';
 import { sendNotificationToUser, notifyBookingUpdate, notifyBookingCancelled } from '../socket/index.js';
+import { sendPushToUser } from '../utils/push.js';
 
 interface BookingQuery {
   limit?: string;
@@ -53,19 +54,25 @@ class BookingService {
       include: { services: { where: { serviceId: data.serviceId } } },
     });
     if (!provider || provider.status !== 'APPROVED') throw new AppError('Provider not found', 404);
-    
+
     const providerService = provider.services[0];
     if (!providerService) throw new AppError('Service not available', 400);
-    
+
+    // Get customer info for notification
+    const customer = await prisma.user.findUnique({
+      where: { id: customerId },
+      select: { firstName: true, lastName: true },
+    });
+
     const serviceAmount = data.duration === 60 ? providerService.price60 :
                           data.duration === 90 ? providerService.price90 || providerService.price60 * 1.5 :
                           providerService.price120 || providerService.price60 * 2;
-    
+
     const travelFee = data.travelFee || 0;
     const totalAmount = serviceAmount + travelFee;
     const platformFee = serviceAmount * 0.20;
     const providerEarning = serviceAmount - platformFee + travelFee;
-    
+
     const booking = await prisma.booking.create({
       data: {
         bookingNumber: `CM${Date.now().toString(36).toUpperCase()}`,
@@ -94,6 +101,29 @@ class BookingService {
       bookingId: booking.id,
       amount: totalAmount,
       description: `${booking.service.name} - ${data.duration} minutes`,
+    });
+
+    // Notify provider about new booking request
+    const customerName = customer ? `${customer.firstName} ${customer.lastName}` : 'A customer';
+    await notificationService.createNotification(
+      provider.userId,
+      'BOOKING_REQUEST',
+      'New Booking Request',
+      `${customerName} requested a ${booking.service.name} session`,
+      { bookingId: booking.id }
+    );
+
+    sendNotificationToUser(provider.userId, {
+      type: 'BOOKING_REQUEST',
+      title: 'New Booking Request',
+      body: `${customerName} requested a ${booking.service.name} session`,
+      data: { bookingId: booking.id },
+    });
+
+    await sendPushToUser(provider.userId, {
+      title: 'New Booking Request',
+      body: `${customerName} requested a ${booking.service.name} session`,
+      data: { bookingId: booking.id, type: 'new_booking' },
     });
 
     return { booking, payment: paymentIntent };
@@ -147,6 +177,12 @@ class BookingService {
       data: { bookingId, reason },
     });
 
+    await sendPushToUser(notifyUserId, {
+      title: 'Booking Cancelled',
+      body: `Your booking has been cancelled by the ${cancelledBy}`,
+      data: { bookingId, type: 'booking_cancelled' },
+    });
+
     notifyBookingCancelled(bookingId, reason);
 
     return updatedBooking;
@@ -172,16 +208,22 @@ class BookingService {
     await notificationService.createNotification(
       booking.customerId,
       'BOOKING_ACCEPTED',
-      'Booking Accepted',
+      'Booking Confirmed',
       `Your booking for ${booking.service.name} has been accepted`,
       { bookingId }
     );
 
     sendNotificationToUser(booking.customerId, {
       type: 'BOOKING_ACCEPTED',
-      title: 'Booking Accepted',
+      title: 'Booking Confirmed',
       body: `Your booking for ${booking.service.name} has been accepted`,
       data: { bookingId },
+    });
+
+    await sendPushToUser(booking.customerId, {
+      title: 'Booking Confirmed',
+      body: `Your booking for ${booking.service.name} has been accepted`,
+      data: { bookingId, type: 'booking_accepted' },
     });
 
     notifyBookingUpdate(bookingId, { status: 'ACCEPTED' });
@@ -219,6 +261,12 @@ class BookingService {
       title: 'Booking Declined',
       body: `Your booking for ${booking.service.name} was declined`,
       data: { bookingId, reason },
+    });
+
+    await sendPushToUser(booking.customerId, {
+      title: 'Booking Declined',
+      body: `Your booking for ${booking.service.name} was declined`,
+      data: { bookingId, type: 'booking_rejected' },
     });
 
     notifyBookingUpdate(bookingId, { status: 'REJECTED', reason });
@@ -324,6 +372,12 @@ class BookingService {
         title: notificationTitle,
         body: notificationBody,
         data: { bookingId },
+      });
+
+      await sendPushToUser(booking.customerId, {
+        title: notificationTitle,
+        body: notificationBody,
+        data: { bookingId, type: `booking_${status.toLowerCase()}` },
       });
     }
 

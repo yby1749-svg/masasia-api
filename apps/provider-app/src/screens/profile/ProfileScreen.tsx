@@ -36,6 +36,11 @@ export function ProfileScreen() {
       screen: 'Services' as const,
     },
     {
+      icon: 'notifications-outline',
+      label: 'Notifications',
+      screen: 'Notifications' as const,
+    },
+    {
       icon: 'settings-outline',
       label: 'Settings',
       screen: 'Settings' as const,

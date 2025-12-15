@@ -11,6 +11,7 @@ import {BookingDetailScreen} from '@screens/booking/BookingDetailScreen';
 import {InboxScreen} from '@screens/inbox/InboxScreen';
 import {ProfileScreen} from '@screens/profile/ProfileScreen';
 import {EditProfileScreen} from '@screens/profile/EditProfileScreen';
+import {NotificationsScreen} from '@screens/notifications';
 import {colors} from '@config/theme';
 
 export type HomeStackParamList = {
@@ -30,6 +31,7 @@ export type BookingsStackParamList = {
 export type ProfileStackParamList = {
   Profile: undefined;
   EditProfile: undefined;
+  Notifications: undefined;
   AddressList: undefined;
   AddAddress: undefined;
   Settings: undefined;
@@ -91,6 +93,11 @@ function ProfileStackNavigator() {
         name="EditProfile"
         component={EditProfileScreen}
         options={{title: 'Edit Profile'}}
+      />
+      <ProfileStack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{headerShown: false}}
       />
     </ProfileStack.Navigator>
   );

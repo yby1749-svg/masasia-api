@@ -46,7 +46,11 @@ export function ProfileScreen() {
     },
     {icon: 'location-outline', label: 'Saved Addresses', onPress: () => {}},
     {icon: 'card-outline', label: 'Payment Methods', onPress: () => {}},
-    {icon: 'notifications-outline', label: 'Notifications', onPress: () => {}},
+    {
+      icon: 'notifications-outline',
+      label: 'Notifications',
+      onPress: () => navigation.navigate('Notifications'),
+    },
     {icon: 'help-circle-outline', label: 'Help & Support', onPress: () => {}},
     {
       icon: 'document-text-outline',
