@@ -562,11 +562,18 @@ describe('API Endpoints', () => {
 
     describe('Booking Cancellation', () => {
       it('should cancel a pending booking', async () => {
-        // Create a new booking - schedule next Monday to ensure provider is available (Mon-Sat)
+        // First ensure provider has availability for Monday (day 1)
+        await prisma.providerAvailability.upsert({
+          where: { providerId_dayOfWeek: { providerId, dayOfWeek: 1 } },
+          update: { isAvailable: true, startTime: '09:00', endTime: '21:00' },
+          create: { providerId, dayOfWeek: 1, isAvailable: true, startTime: '09:00', endTime: '21:00' },
+        });
+
+        // Create a new booking - schedule next Monday at 15:00 UTC to avoid conflicts
         const scheduledAt = new Date();
-        const daysUntilMonday = (8 - scheduledAt.getDay()) % 7 || 7; // Next Monday
+        const daysUntilMonday = (1 - scheduledAt.getDay() + 7) % 7 || 7; // Next Monday (day 1)
         scheduledAt.setDate(scheduledAt.getDate() + daysUntilMonday);
-        scheduledAt.setHours(10, 0, 0, 0);
+        scheduledAt.setUTCHours(15, 0, 0, 0); // Set UTC hours directly
 
         const bookingRes = await request(app)
           .post('/api/v1/bookings')
@@ -614,11 +621,18 @@ describe('API Endpoints', () => {
 
     describe('Booking Rejection', () => {
       it('should reject a pending booking', async () => {
-        // Create a new booking - schedule next Tuesday to ensure provider is available (Mon-Sat)
+        // First ensure provider has availability for Tuesday (day 2)
+        await prisma.providerAvailability.upsert({
+          where: { providerId_dayOfWeek: { providerId, dayOfWeek: 2 } },
+          update: { isAvailable: true, startTime: '09:00', endTime: '21:00' },
+          create: { providerId, dayOfWeek: 2, isAvailable: true, startTime: '09:00', endTime: '21:00' },
+        });
+
+        // Create a new booking - schedule next Tuesday at 10:00 UTC
         const scheduledAt = new Date();
-        const daysUntilTuesday = (9 - scheduledAt.getDay()) % 7 || 7; // Next Tuesday
+        const daysUntilTuesday = (2 - scheduledAt.getDay() + 7) % 7 || 7; // Next Tuesday (day 2)
         scheduledAt.setDate(scheduledAt.getDate() + daysUntilTuesday);
-        scheduledAt.setHours(10, 0, 0, 0);
+        scheduledAt.setUTCHours(10, 0, 0, 0); // Set UTC hours directly
 
         const bookingRes = await request(app)
           .post('/api/v1/bookings')
@@ -633,6 +647,7 @@ describe('API Endpoints', () => {
             longitude: 121.0178,
           });
 
+        expect(bookingRes.status).toBe(201);
         const bookingId = bookingRes.body.data.booking.id;
 
         // Reject the booking
@@ -651,11 +666,18 @@ describe('API Endpoints', () => {
       });
 
       it('should not reject an already accepted booking', async () => {
-        // Create and accept a booking - schedule next Wednesday to ensure provider is available (Mon-Sat)
+        // First ensure provider has availability for Wednesday (day 3)
+        await prisma.providerAvailability.upsert({
+          where: { providerId_dayOfWeek: { providerId, dayOfWeek: 3 } },
+          update: { isAvailable: true, startTime: '09:00', endTime: '21:00' },
+          create: { providerId, dayOfWeek: 3, isAvailable: true, startTime: '09:00', endTime: '21:00' },
+        });
+
+        // Create and accept a booking - schedule next Wednesday at 14:00 local time
         const scheduledAt = new Date();
-        const daysUntilWednesday = (10 - scheduledAt.getDay()) % 7 || 7; // Next Wednesday
+        const daysUntilWednesday = (3 - scheduledAt.getDay() + 7) % 7 || 7; // Next Wednesday (day 3)
         scheduledAt.setDate(scheduledAt.getDate() + daysUntilWednesday);
-        scheduledAt.setHours(10, 0, 0, 0);
+        scheduledAt.setHours(14, 0, 0, 0); // Set local hours to stay on the right day
 
         const bookingRes = await request(app)
           .post('/api/v1/bookings')
@@ -670,6 +692,7 @@ describe('API Endpoints', () => {
             longitude: 121.0178,
           });
 
+        expect(bookingRes.status).toBe(201);
         const bookingId = bookingRes.body.data.booking.id;
 
         // Accept it first
@@ -693,10 +716,18 @@ describe('API Endpoints', () => {
 
     describe('Provider Location Tracking', () => {
       it('should update provider location during booking', async () => {
-        // Create a booking - schedule for tomorrow at 10 AM within working hours
+        // First ensure provider has availability for Tuesday (day 2)
+        await prisma.providerAvailability.upsert({
+          where: { providerId_dayOfWeek: { providerId, dayOfWeek: 2 } },
+          update: { isAvailable: true, startTime: '09:00', endTime: '21:00' },
+          create: { providerId, dayOfWeek: 2, isAvailable: true, startTime: '09:00', endTime: '21:00' },
+        });
+
+        // Create a booking - schedule next Tuesday at 11:00 UTC to avoid conflicts
         const scheduledAt = new Date();
-        scheduledAt.setDate(scheduledAt.getDate() + 1);
-        scheduledAt.setHours(10, 0, 0, 0);
+        const daysUntilTuesday = (2 - scheduledAt.getDay() + 7) % 7 || 7; // Next Tuesday (day 2)
+        scheduledAt.setDate(scheduledAt.getDate() + daysUntilTuesday);
+        scheduledAt.setUTCHours(11, 0, 0, 0); // Set UTC hours directly
 
         const bookingRes = await request(app)
           .post('/api/v1/bookings')
