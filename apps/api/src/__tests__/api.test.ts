@@ -7001,8 +7001,6 @@ describe('API Endpoints', () => {
     });
 
     describe('Shop Invitations', () => {
-      let invitationId: string;
-
       describe('POST /api/v1/shops/me/invitations', () => {
         it('should send invitation by email', async () => {
           const res = await request(app)
@@ -7016,7 +7014,7 @@ describe('API Endpoints', () => {
           expect(res.status).toBe(201);
           expect(res.body.data.targetEmail).toBe('newinvite@test.com');
           expect(res.body.data.status).toBe('PENDING');
-          invitationId = res.body.data.id;
+          expect(res.body.data.id).toBeDefined();
         });
 
         it('should send invitation by provider ID', async () => {
@@ -7106,8 +7104,6 @@ describe('API Endpoints', () => {
     });
 
     describe('Shop Payouts', () => {
-      let payoutId: string;
-
       describe('POST /api/v1/shops/me/payouts', () => {
         it('should request payout', async () => {
           const res = await request(app)
@@ -7118,7 +7114,7 @@ describe('API Endpoints', () => {
           expect(res.status).toBe(201);
           expect(res.body.data.amount).toBe(1000);
           expect(res.body.data.status).toBe('PENDING');
-          payoutId = res.body.data.id;
+          expect(res.body.data.id).toBeDefined();
         });
 
         it('should reject payout exceeding balance', async () => {

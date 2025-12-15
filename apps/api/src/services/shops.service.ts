@@ -2,7 +2,7 @@
 // Shops Service - Shop Owner Management
 // ============================================================================
 
-import { PayoutMethod, ShopStatus, ShopInvitationStatus } from '@prisma/client';
+import { PayoutMethod, PayoutStatus, ShopStatus } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middleware/errorHandler.js';
 import crypto from 'crypto';
@@ -576,7 +576,7 @@ class ShopsService {
   async adminListShopPayouts(query: PaginationQuery & { status?: string }) {
     const limit = parseInt(query.limit || '20');
     const page = parseInt(query.page || '1');
-    const where = query.status ? { status: query.status as any } : {};
+    const where = query.status ? { status: query.status as PayoutStatus } : {};
 
     const [payouts, total] = await Promise.all([
       prisma.shopPayout.findMany({
