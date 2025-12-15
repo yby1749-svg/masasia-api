@@ -18,7 +18,7 @@
     "db:seed": "npm run db:seed --workspace=apps/api"
   },
   "devDependencies": {
-    "turbo": "^1.11.0"
+    "turbo": "^2.6.3"
   },
   "engines": {
     "node": ">=20.0.0"
