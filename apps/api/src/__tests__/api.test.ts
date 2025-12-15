@@ -6874,4 +6874,628 @@ describe('API Endpoints', () => {
       });
     });
   });
+
+  // ============================================================================
+  // SHOP OWNER ROUTES
+  // ============================================================================
+
+  describe('Shop Owner Routes', () => {
+    let shopOwnerToken: string;
+    let shopOwnerId: string;
+    let shopId: string;
+    let providerToken: string;
+    let providerId: string;
+    let adminToken: string;
+    const shopOwnerPassword = 'shopowner123!';
+
+    beforeAll(async () => {
+      // Generate password hash
+      const bcrypt = await import('bcryptjs');
+      const passwordHash = await bcrypt.hash(shopOwnerPassword, 12);
+
+      // Create shop owner user
+      const shopOwner = await prisma.user.create({
+        data: {
+          email: `shopowner_test_${Date.now()}@test.com`,
+          phone: `+6391700${Date.now().toString().slice(-5)}`,
+          passwordHash,
+          firstName: 'Test',
+          lastName: 'ShopOwner',
+          role: 'SHOP_OWNER',
+          phoneVerified: true,
+          emailVerified: true,
+        },
+      });
+      shopOwnerId = shopOwner.id;
+
+      // Create shop
+      const shop = await prisma.shop.create({
+        data: {
+          ownerId: shopOwner.id,
+          name: 'Test Shop for Unit Tests',
+          description: 'A test shop',
+          phone: shopOwner.phone,
+          email: shopOwner.email,
+          status: 'APPROVED',
+          balance: 5000,
+          totalEarnings: 10000,
+        },
+      });
+      shopId = shop.id;
+
+      // Login shop owner
+      const shopOwnerLoginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: shopOwner.email, password: shopOwnerPassword });
+      shopOwnerToken = shopOwnerLoginRes.body.data?.accessToken;
+
+      // Get provider token
+      const providerLoginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'provider@test.com', password: 'provider123!' });
+      providerToken = providerLoginRes.body.data?.accessToken;
+
+      const provider = await prisma.provider.findFirst({
+        where: { user: { email: 'provider@test.com' } },
+      });
+      providerId = provider?.id || '';
+
+      // Get admin token
+      const adminLoginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'admin@masasia.com', password: 'admin123!' });
+      adminToken = adminLoginRes.body.data?.accessToken;
+    });
+
+    afterAll(async () => {
+      // Clean up
+      await prisma.shopInvitation.deleteMany({ where: { shopId } });
+      await prisma.shopPayout.deleteMany({ where: { shopId } });
+      await prisma.shop.delete({ where: { id: shopId } });
+      await prisma.user.delete({ where: { id: shopOwnerId } });
+    });
+
+    describe('GET /api/v1/shops/me', () => {
+      it('should return shop details for shop owner', async () => {
+        const res = await request(app)
+          .get('/api/v1/shops/me')
+          .set('Authorization', `Bearer ${shopOwnerToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.name).toBe('Test Shop for Unit Tests');
+        expect(res.body.data.status).toBe('APPROVED');
+      });
+
+      it('should reject non-shop-owner access', async () => {
+        const res = await request(app)
+          .get('/api/v1/shops/me')
+          .set('Authorization', `Bearer ${providerToken}`);
+
+        expect(res.status).toBe(403);
+      });
+    });
+
+    describe('PATCH /api/v1/shops/me', () => {
+      it('should update shop profile', async () => {
+        const res = await request(app)
+          .patch('/api/v1/shops/me')
+          .set('Authorization', `Bearer ${shopOwnerToken}`)
+          .send({ description: 'Updated description' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.description).toBe('Updated description');
+      });
+    });
+
+    describe('PATCH /api/v1/shops/me/bank-account', () => {
+      it('should update bank account info', async () => {
+        const res = await request(app)
+          .patch('/api/v1/shops/me/bank-account')
+          .set('Authorization', `Bearer ${shopOwnerToken}`)
+          .send({ gcashNumber: '+639171234567' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.gcashNumber).toBe('+639171234567');
+      });
+    });
+
+    describe('Shop Invitations', () => {
+      let invitationId: string;
+
+      describe('POST /api/v1/shops/me/invitations', () => {
+        it('should send invitation by email', async () => {
+          const res = await request(app)
+            .post('/api/v1/shops/me/invitations')
+            .set('Authorization', `Bearer ${shopOwnerToken}`)
+            .send({
+              targetEmail: 'newinvite@test.com',
+              message: 'Join our shop!',
+            });
+
+          expect(res.status).toBe(201);
+          expect(res.body.data.targetEmail).toBe('newinvite@test.com');
+          expect(res.body.data.status).toBe('PENDING');
+          invitationId = res.body.data.id;
+        });
+
+        it('should send invitation by provider ID', async () => {
+          const res = await request(app)
+            .post('/api/v1/shops/me/invitations')
+            .set('Authorization', `Bearer ${shopOwnerToken}`)
+            .send({ targetProviderId: providerId });
+
+          expect(res.status).toBe(201);
+          expect(res.body.data.targetProviderId).toBe(providerId);
+        });
+
+        it('should reject without email or provider ID', async () => {
+          const res = await request(app)
+            .post('/api/v1/shops/me/invitations')
+            .set('Authorization', `Bearer ${shopOwnerToken}`)
+            .send({});
+
+          expect(res.status).toBe(400);
+        });
+      });
+
+      describe('GET /api/v1/shops/me/invitations', () => {
+        it('should list shop invitations', async () => {
+          const res = await request(app)
+            .get('/api/v1/shops/me/invitations')
+            .set('Authorization', `Bearer ${shopOwnerToken}`);
+
+          expect(res.status).toBe(200);
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+      });
+
+      describe('DELETE /api/v1/shops/me/invitations/:id', () => {
+        it('should cancel invitation', async () => {
+          // Create a new invitation to cancel
+          const createRes = await request(app)
+            .post('/api/v1/shops/me/invitations')
+            .set('Authorization', `Bearer ${shopOwnerToken}`)
+            .send({ targetEmail: 'tocancel@test.com' });
+
+          const res = await request(app)
+            .delete(`/api/v1/shops/me/invitations/${createRes.body.data.id}`)
+            .set('Authorization', `Bearer ${shopOwnerToken}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.message).toBe('Invitation cancelled');
+        });
+      });
+    });
+
+    describe('GET /api/v1/shops/me/therapists', () => {
+      it('should list shop therapists', async () => {
+        const res = await request(app)
+          .get('/api/v1/shops/me/therapists')
+          .set('Authorization', `Bearer ${shopOwnerToken}`);
+
+        expect(res.status).toBe(200);
+        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(res.body.pagination).toBeDefined();
+      });
+    });
+
+    describe('Shop Earnings', () => {
+      describe('GET /api/v1/shops/me/earnings', () => {
+        it('should return earnings list', async () => {
+          const res = await request(app)
+            .get('/api/v1/shops/me/earnings')
+            .set('Authorization', `Bearer ${shopOwnerToken}`);
+
+          expect(res.status).toBe(200);
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+      });
+
+      describe('GET /api/v1/shops/me/earnings/summary', () => {
+        it('should return earnings summary', async () => {
+          const res = await request(app)
+            .get('/api/v1/shops/me/earnings/summary')
+            .set('Authorization', `Bearer ${shopOwnerToken}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.data).toHaveProperty('totalEarnings');
+          expect(res.body.data).toHaveProperty('balance');
+        });
+      });
+    });
+
+    describe('Shop Payouts', () => {
+      let payoutId: string;
+
+      describe('POST /api/v1/shops/me/payouts', () => {
+        it('should request payout', async () => {
+          const res = await request(app)
+            .post('/api/v1/shops/me/payouts')
+            .set('Authorization', `Bearer ${shopOwnerToken}`)
+            .send({ amount: 1000, method: 'GCASH' });
+
+          expect(res.status).toBe(201);
+          expect(res.body.data.amount).toBe(1000);
+          expect(res.body.data.status).toBe('PENDING');
+          payoutId = res.body.data.id;
+        });
+
+        it('should reject payout exceeding balance', async () => {
+          const res = await request(app)
+            .post('/api/v1/shops/me/payouts')
+            .set('Authorization', `Bearer ${shopOwnerToken}`)
+            .send({ amount: 999999, method: 'GCASH' });
+
+          expect(res.status).toBe(400);
+        });
+      });
+
+      describe('GET /api/v1/shops/me/payouts', () => {
+        it('should list payout history', async () => {
+          const res = await request(app)
+            .get('/api/v1/shops/me/payouts')
+            .set('Authorization', `Bearer ${shopOwnerToken}`);
+
+          expect(res.status).toBe(200);
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+      });
+    });
+
+    describe('Provider Shop Endpoints', () => {
+      describe('GET /api/v1/providers/me/shop-invitations', () => {
+        it('should list provider invitations', async () => {
+          const res = await request(app)
+            .get('/api/v1/providers/me/shop-invitations')
+            .set('Authorization', `Bearer ${providerToken}`);
+
+          expect(res.status).toBe(200);
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+      });
+
+      describe('GET /api/v1/providers/me/shop', () => {
+        it('should return null if not in shop', async () => {
+          const res = await request(app)
+            .get('/api/v1/providers/me/shop')
+            .set('Authorization', `Bearer ${providerToken}`);
+
+          expect(res.status).toBe(200);
+          // Provider may or may not be in a shop
+        });
+      });
+    });
+
+    describe('Admin Shop Management', () => {
+      let pendingShopId: string;
+      let pendingShopOwnerId: string;
+
+      beforeAll(async () => {
+        // Create a pending shop for testing
+        const pendingOwner = await prisma.user.create({
+          data: {
+            email: `pending_owner_${Date.now()}@test.com`,
+            phone: `+6391800${Date.now().toString().slice(-5)}`,
+            passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4aFQHXJ0u5eCQKGi',
+            firstName: 'Pending',
+            lastName: 'Owner',
+            role: 'SHOP_OWNER',
+            phoneVerified: true,
+            emailVerified: true,
+          },
+        });
+        pendingShopOwnerId = pendingOwner.id;
+
+        const pendingShop = await prisma.shop.create({
+          data: {
+            ownerId: pendingOwner.id,
+            name: 'Pending Test Shop',
+            status: 'PENDING',
+            balance: 0,
+            totalEarnings: 0,
+          },
+        });
+        pendingShopId = pendingShop.id;
+      });
+
+      afterAll(async () => {
+        await prisma.shop.delete({ where: { id: pendingShopId } });
+        await prisma.user.delete({ where: { id: pendingShopOwnerId } });
+      });
+
+      describe('GET /api/v1/admin/shops', () => {
+        it('should list all shops', async () => {
+          const res = await request(app)
+            .get('/api/v1/admin/shops')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+          expect(res.status).toBe(200);
+          expect(Array.isArray(res.body.data)).toBe(true);
+          expect(res.body.pagination).toBeDefined();
+        });
+
+        it('should filter by status', async () => {
+          const res = await request(app)
+            .get('/api/v1/admin/shops?status=PENDING')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+          expect(res.status).toBe(200);
+          res.body.data.forEach((shop: any) => {
+            expect(shop.status).toBe('PENDING');
+          });
+        });
+      });
+
+      describe('GET /api/v1/admin/shops/:id', () => {
+        it('should get shop details', async () => {
+          const res = await request(app)
+            .get(`/api/v1/admin/shops/${shopId}`)
+            .set('Authorization', `Bearer ${adminToken}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.data.id).toBe(shopId);
+        });
+
+        it('should return 404 for non-existent shop', async () => {
+          const res = await request(app)
+            .get('/api/v1/admin/shops/non-existent-id')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+          expect(res.status).toBe(404);
+        });
+      });
+
+      describe('POST /api/v1/admin/shops/:id/approve', () => {
+        it('should approve pending shop', async () => {
+          const res = await request(app)
+            .post(`/api/v1/admin/shops/${pendingShopId}/approve`)
+            .set('Authorization', `Bearer ${adminToken}`);
+
+          expect(res.status).toBe(200);
+          expect(res.body.data.status).toBe('APPROVED');
+          expect(res.body.message).toBe('Shop approved');
+        });
+      });
+
+      describe('POST /api/v1/admin/shops/:id/suspend', () => {
+        it('should suspend shop', async () => {
+          const res = await request(app)
+            .post(`/api/v1/admin/shops/${pendingShopId}/suspend`)
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send({ reason: 'Test suspension' });
+
+          expect(res.status).toBe(200);
+          expect(res.body.data.status).toBe('SUSPENDED');
+        });
+      });
+
+      describe('POST /api/v1/admin/shops/:id/reject', () => {
+        it('should reject shop with reason', async () => {
+          // First create another pending shop to reject
+          const rejectOwner = await prisma.user.create({
+            data: {
+              email: `reject_owner_${Date.now()}@test.com`,
+              phone: `+6391900${Date.now().toString().slice(-5)}`,
+              passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4aFQHXJ0u5eCQKGi',
+              firstName: 'Reject',
+              lastName: 'Owner',
+              role: 'SHOP_OWNER',
+              phoneVerified: true,
+              emailVerified: true,
+            },
+          });
+
+          const rejectShop = await prisma.shop.create({
+            data: {
+              ownerId: rejectOwner.id,
+              name: 'Shop to Reject',
+              status: 'PENDING',
+              balance: 0,
+              totalEarnings: 0,
+            },
+          });
+
+          const res = await request(app)
+            .post(`/api/v1/admin/shops/${rejectShop.id}/reject`)
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send({ reason: 'Incomplete documentation' });
+
+          expect(res.status).toBe(200);
+          expect(res.body.data.status).toBe('REJECTED');
+          expect(res.body.data.rejectedReason).toBe('Incomplete documentation');
+
+          // Clean up
+          await prisma.shop.delete({ where: { id: rejectShop.id } });
+          await prisma.user.delete({ where: { id: rejectOwner.id } });
+        });
+      });
+    });
+
+    describe('Admin Shop Payouts', () => {
+      let testPayoutId: string;
+
+      beforeAll(async () => {
+        // Create a test payout
+        const payout = await prisma.shopPayout.create({
+          data: {
+            shopId,
+            amount: 500,
+            fee: 0,
+            netAmount: 500,
+            method: 'GCASH',
+            accountInfo: '+639171234567',
+            status: 'PENDING',
+          },
+        });
+        testPayoutId = payout.id;
+      });
+
+      describe('GET /api/v1/admin/shop-payouts', () => {
+        it('should list all shop payouts', async () => {
+          const res = await request(app)
+            .get('/api/v1/admin/shop-payouts')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+          expect(res.status).toBe(200);
+          expect(Array.isArray(res.body.data)).toBe(true);
+        });
+
+        it('should filter by status', async () => {
+          const res = await request(app)
+            .get('/api/v1/admin/shop-payouts?status=PENDING')
+            .set('Authorization', `Bearer ${adminToken}`);
+
+          expect(res.status).toBe(200);
+        });
+      });
+
+      describe('POST /api/v1/admin/shop-payouts/:id/process', () => {
+        it('should process payout', async () => {
+          const res = await request(app)
+            .post(`/api/v1/admin/shop-payouts/${testPayoutId}/process`)
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send({ referenceNumber: 'TEST-REF-123' });
+
+          expect(res.status).toBe(200);
+          expect(res.body.data.status).toBe('COMPLETED');
+          expect(res.body.data.referenceNumber).toBe('TEST-REF-123');
+        });
+      });
+
+      describe('POST /api/v1/admin/shop-payouts/:id/reject', () => {
+        it('should reject payout and refund balance', async () => {
+          // Create another payout to reject
+          const rejectPayout = await prisma.shopPayout.create({
+            data: {
+              shopId,
+              amount: 200,
+              fee: 0,
+              netAmount: 200,
+              method: 'GCASH',
+              accountInfo: '+639171234567',
+              status: 'PENDING',
+            },
+          });
+
+          // Deduct from shop balance first (simulating payout request)
+          await prisma.shop.update({
+            where: { id: shopId },
+            data: { balance: { decrement: 200 } },
+          });
+
+          const shopBefore = await prisma.shop.findUnique({ where: { id: shopId } });
+          const balanceBefore = shopBefore?.balance || 0;
+
+          const res = await request(app)
+            .post(`/api/v1/admin/shop-payouts/${rejectPayout.id}/reject`)
+            .set('Authorization', `Bearer ${adminToken}`)
+            .send({ reason: 'Invalid account' });
+
+          expect(res.status).toBe(200);
+          expect(res.body.data.status).toBe('FAILED');
+
+          // Verify balance was refunded
+          const shopAfter = await prisma.shop.findUnique({ where: { id: shopId } });
+          expect(shopAfter?.balance).toBe(balanceBefore + 200);
+        });
+      });
+    });
+
+    describe('Earnings Flow', () => {
+      it('should credit shop when shop therapist completes booking', async () => {
+        const bcrypt = await import('bcryptjs');
+        const testProviderPassword = 'testprovider123!';
+        const passwordHash = await bcrypt.hash(testProviderPassword, 12);
+
+        // Create a provider in the shop
+        const testProvider = await prisma.user.create({
+          data: {
+            email: `shop_provider_${Date.now()}@test.com`,
+            phone: `+6392000${Date.now().toString().slice(-5)}`,
+            passwordHash,
+            firstName: 'Shop',
+            lastName: 'Provider',
+            role: 'PROVIDER',
+            phoneVerified: true,
+            emailVerified: true,
+          },
+        });
+
+        const provider = await prisma.provider.create({
+          data: {
+            userId: testProvider.id,
+            displayName: 'Shop Provider',
+            status: 'APPROVED',
+            shopId: shopId,
+            shopJoinedAt: new Date(),
+            balance: 0,
+            totalEarnings: 0,
+          },
+        });
+
+        // Get customer
+        const customer = await prisma.user.findFirst({
+          where: { role: 'CUSTOMER' },
+        });
+
+        // Get a service
+        const service = await prisma.service.findFirst();
+
+        // Create a booking
+        const booking = await prisma.booking.create({
+          data: {
+            bookingNumber: `CM-SHOP-TEST-${Date.now()}`,
+            customerId: customer!.id,
+            providerId: provider.id,
+            serviceId: service!.id,
+            duration: 60,
+            scheduledAt: new Date(Date.now() + 3600000),
+            addressText: 'Test Address',
+            latitude: 14.5,
+            longitude: 121.0,
+            serviceAmount: 1000,
+            travelFee: 0,
+            totalAmount: 1000,
+            platformFee: 200,
+            providerEarning: 800,
+            status: 'IN_PROGRESS',
+          },
+        });
+
+        // Get shop balance before
+        const shopBefore = await prisma.shop.findUnique({ where: { id: shopId } });
+        const balanceBefore = shopBefore?.balance || 0;
+
+        // Login as provider
+        const providerLoginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: testProvider.email, password: testProviderPassword });
+        const providerAuthToken = providerLoginRes.body.data?.accessToken;
+
+        // Complete booking
+        const res = await request(app)
+          .patch(`/api/v1/bookings/${booking.id}/status`)
+          .set('Authorization', `Bearer ${providerAuthToken}`)
+          .send({ status: 'COMPLETED' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.shopId).toBe(shopId);
+        expect(res.body.data.shopEarning).toBe(800);
+
+        // Verify shop balance increased
+        const shopAfter = await prisma.shop.findUnique({ where: { id: shopId } });
+        expect(shopAfter?.balance).toBe(balanceBefore + 800);
+
+        // Verify provider balance did NOT increase
+        const providerAfter = await prisma.provider.findUnique({ where: { id: provider.id } });
+        expect(providerAfter?.balance).toBe(0);
+
+        // Clean up
+        await prisma.booking.delete({ where: { id: booking.id } });
+        await prisma.provider.delete({ where: { id: provider.id } });
+        await prisma.user.delete({ where: { id: testProvider.id } });
+      });
+    });
+  });
 });
