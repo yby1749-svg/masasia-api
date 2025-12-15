@@ -113,11 +113,11 @@ export function ShopDashboardScreen() {
           <Text style={styles.totalEarnings}>
             {formatCurrency(earningsSummary?.totalEarnings || 0)}
           </Text>
-          {earningsSummary?.pendingPayout && earningsSummary.pendingPayout > 0 && (
+          {earningsSummary?.pendingPayout != null && earningsSummary.pendingPayout > 0 ? (
             <Text style={styles.pendingPayout}>
               Pending Payout: {formatCurrency(earningsSummary.pendingPayout)}
             </Text>
-          )}
+          ) : null}
         </View>
 
         {/* Quick Actions */}
