@@ -43,7 +43,18 @@ export const useAvailabilityStore = create<AvailabilityState>((set, get) => ({
     set({isLoading: true, error: null});
     try {
       const response = await providersApi.getAvailability();
-      set({weeklySchedule: response.data.data, isLoading: false});
+      const apiData = response.data.data || {};
+      // Merge API response with defaults to ensure all days exist
+      const mergedSchedule: WeeklySchedule = {
+        monday: apiData.monday || {...defaultDaySchedule, slots: []},
+        tuesday: apiData.tuesday || {...defaultDaySchedule, slots: []},
+        wednesday: apiData.wednesday || {...defaultDaySchedule, slots: []},
+        thursday: apiData.thursday || {...defaultDaySchedule, slots: []},
+        friday: apiData.friday || {...defaultDaySchedule, slots: []},
+        saturday: apiData.saturday || {...defaultDaySchedule, slots: []},
+        sunday: apiData.sunday || {...defaultDaySchedule, slots: []},
+      };
+      set({weeklySchedule: mergedSchedule, isLoading: false});
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Failed to fetch availability';
@@ -55,7 +66,18 @@ export const useAvailabilityStore = create<AvailabilityState>((set, get) => ({
     set({isLoading: true, error: null});
     try {
       const response = await providersApi.updateAvailability(schedule);
-      set({weeklySchedule: response.data.data, isLoading: false});
+      const apiData = response.data.data || {};
+      // Merge API response with defaults to ensure all days exist
+      const mergedSchedule: WeeklySchedule = {
+        monday: apiData.monday || {...defaultDaySchedule, slots: []},
+        tuesday: apiData.tuesday || {...defaultDaySchedule, slots: []},
+        wednesday: apiData.wednesday || {...defaultDaySchedule, slots: []},
+        thursday: apiData.thursday || {...defaultDaySchedule, slots: []},
+        friday: apiData.friday || {...defaultDaySchedule, slots: []},
+        saturday: apiData.saturday || {...defaultDaySchedule, slots: []},
+        sunday: apiData.sunday || {...defaultDaySchedule, slots: []},
+      };
+      set({weeklySchedule: mergedSchedule, isLoading: false});
     } catch (error: unknown) {
       const message =
         error instanceof Error
@@ -68,7 +90,7 @@ export const useAvailabilityStore = create<AvailabilityState>((set, get) => ({
 
   toggleDayAvailability: (day: keyof WeeklySchedule) => {
     const {weeklySchedule} = get();
-    const currentDay = weeklySchedule[day];
+    const currentDay = weeklySchedule[day] || defaultDaySchedule;
 
     set({
       weeklySchedule: {

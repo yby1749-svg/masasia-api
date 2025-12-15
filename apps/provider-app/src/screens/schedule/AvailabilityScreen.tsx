@@ -49,7 +49,7 @@ export function AvailabilityScreen() {
     field: 'start' | 'end',
     time: string,
   ) => {
-    const daySchedule = weeklySchedule[day];
+    const daySchedule = weeklySchedule[day] || {isAvailable: false, slots: []};
     const newSlots = daySchedule.slots.map((slot, index) => {
       if (index === slotIndex) {
         return {...slot, [field]: time};
@@ -70,7 +70,10 @@ export function AvailabilityScreen() {
         </View>
 
         {DAYS_OF_WEEK.map(day => {
-          const daySchedule = weeklySchedule[day as keyof WeeklySchedule];
+          const daySchedule = weeklySchedule[day as keyof WeeklySchedule] || {
+            isAvailable: false,
+            slots: [],
+          };
 
           return (
             <Card key={day} style={styles.dayCard}>
