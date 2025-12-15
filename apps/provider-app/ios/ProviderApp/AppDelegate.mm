@@ -8,15 +8,20 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  // Initialize Firebase
-  [FIRApp configure];
+  // Initialize Firebase (only if GoogleService-Info.plist exists)
+  NSString *filePath = [[NSBundle mainBundle] pathForResource:@"GoogleService-Info" ofType:@"plist"];
+  if (filePath) {
+    [FIRApp configure];
+  } else {
+    NSLog(@"Warning: GoogleService-Info.plist not found. Firebase is disabled.");
+  }
 
   // Register for remote notifications
   if ([UNUserNotificationCenter class] != nil) {
     [UNUserNotificationCenter currentNotificationCenter].delegate = self;
   }
 
-  self.moduleName = @"ProviderApp";
+  self.moduleName = @"MasasiaProvider";
   // You can add your custom initial props in the dictionary below.
   // They will be passed down to the ViewController used by React Native.
   self.initialProps = @{};
@@ -27,7 +32,9 @@
 // Handle remote notification registration
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
 {
-  [FIRMessaging messaging].APNSToken = deviceToken;
+  if ([FIRApp defaultApp]) {
+    [FIRMessaging messaging].APNSToken = deviceToken;
+  }
 }
 
 // Handle foreground notification presentation

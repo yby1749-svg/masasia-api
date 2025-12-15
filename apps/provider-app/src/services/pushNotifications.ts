@@ -1,20 +1,65 @@
-import messaging, {
-  FirebaseMessagingTypes,
-} from '@react-native-firebase/messaging';
 import {Platform, PermissionsAndroid} from 'react-native';
 import {usersApi} from '@api';
 import {useNotificationStore} from '@store/notificationStore';
 import {useJobStore} from '@store/jobStore';
 import type {Notification} from '@types';
 
+// Lazy-loaded Firebase modules to prevent crashes when not configured
+let messagingModule: typeof import('@react-native-firebase/messaging').default | null = null;
+let firebaseAppModule: typeof import('@react-native-firebase/app').default | null = null;
+
+// Safely get Firebase app module
+function getFirebaseApp() {
+  if (firebaseAppModule === null) {
+    try {
+      firebaseAppModule = require('@react-native-firebase/app').default;
+    } catch {
+      firebaseAppModule = null;
+    }
+  }
+  return firebaseAppModule;
+}
+
+// Check if Firebase is configured
+function isFirebaseConfigured(): boolean {
+  try {
+    const firebase = getFirebaseApp();
+    return firebase && firebase.apps && firebase.apps.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Safely get Firebase messaging module
+function getMessaging() {
+  if (!isFirebaseConfigured()) {
+    return null;
+  }
+  if (messagingModule === null) {
+    try {
+      messagingModule = require('@react-native-firebase/messaging').default;
+    } catch {
+      messagingModule = null;
+    }
+  }
+  return messagingModule;
+}
+
 // Request permission for push notifications
 export async function requestNotificationPermission(): Promise<boolean> {
+  const messaging = getMessaging();
+  if (!messaging) {
+    console.log('[Push] Firebase not configured, skipping permission request');
+    return false;
+  }
+
   try {
     if (Platform.OS === 'ios') {
       const authStatus = await messaging().requestPermission();
+      const {AuthorizationStatus} = require('@react-native-firebase/messaging');
       const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        authStatus === AuthorizationStatus.AUTHORIZED ||
+        authStatus === AuthorizationStatus.PROVISIONAL;
       console.log('[Push] iOS permission status:', authStatus, 'enabled:', enabled);
       return enabled;
     } else {
@@ -39,6 +84,12 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 // Get FCM token and register with backend
 export async function registerForPushNotifications(): Promise<string | null> {
+  const messaging = getMessaging();
+  if (!messaging) {
+    console.log('[Push] Firebase not configured, skipping registration');
+    return null;
+  }
+
   try {
     // Request permission first
     const hasPermission = await requestNotificationPermission();
@@ -73,7 +124,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
 // Handle token refresh
 export function setupTokenRefreshListener(): () => void {
-  const unsubscribe = messaging().onTokenRefresh(async token => {
+  const messaging = getMessaging();
+  if (!messaging) {
+    return () => {};
+  }
+
+  const unsubscribe = messaging().onTokenRefresh(async (token: string) => {
     console.log('[Push] Token refreshed:', token);
     useNotificationStore.getState().setFcmToken(token);
 
@@ -90,8 +146,13 @@ export function setupTokenRefreshListener(): () => void {
 
 // Handle foreground messages
 export function setupForegroundMessageListener(): () => void {
+  const messaging = getMessaging();
+  if (!messaging) {
+    return () => {};
+  }
+
   const unsubscribe = messaging().onMessage(
-    async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+    async (remoteMessage: any) => {
       console.log('[Push] Foreground message:', remoteMessage);
 
       const {notification, data} = remoteMessage;
@@ -123,8 +184,13 @@ export function setupForegroundMessageListener(): () => void {
 
 // Handle notification opened (app in background/quit)
 export function setupNotificationOpenedListener(): () => void {
+  const messaging = getMessaging();
+  if (!messaging) {
+    return () => {};
+  }
+
   const unsubscribe = messaging().onNotificationOpenedApp(
-    (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
+    (remoteMessage: any) => {
       console.log('[Push] Notification opened app:', remoteMessage);
       handleNotificationAction(remoteMessage.data);
     },
@@ -135,6 +201,11 @@ export function setupNotificationOpenedListener(): () => void {
 
 // Check if app was opened from notification (app was quit)
 export async function getInitialNotification(): Promise<void> {
+  const messaging = getMessaging();
+  if (!messaging) {
+    return;
+  }
+
   const remoteMessage = await messaging().getInitialNotification();
 
   if (remoteMessage) {
@@ -187,6 +258,16 @@ function handleNotificationAction(
 
 // Setup background message handler (must be called outside of component)
 export function setupBackgroundMessageHandler(): void {
+  if (!isFirebaseConfigured()) {
+    console.log('[Push] Firebase not configured, skipping background handler setup');
+    return;
+  }
+
+  const messaging = getMessaging();
+  if (!messaging) {
+    return;
+  }
+
   messaging().setBackgroundMessageHandler(async remoteMessage => {
     console.log('[Push] Background message:', remoteMessage);
 
@@ -199,6 +280,11 @@ export function setupBackgroundMessageHandler(): void {
 // Initialize all push notification listeners
 export function initializePushNotifications(): () => void {
   console.log('[Push] Initializing push notifications');
+
+  if (!isFirebaseConfigured()) {
+    console.log('[Push] Firebase not configured, skipping initialization');
+    return () => {};
+  }
 
   // Setup all listeners
   const unsubscribeTokenRefresh = setupTokenRefreshListener();
