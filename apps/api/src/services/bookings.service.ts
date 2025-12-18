@@ -174,8 +174,31 @@ class BookingService {
 
     const travelFee = data.travelFee || 0;
     const totalAmount = serviceAmount + travelFee;
-    const platformFee = serviceAmount * 0.20;
-    const providerEarning = serviceAmount - platformFee + travelFee;
+
+    // Calculate earnings based on whether provider belongs to a shop
+    // Shop therapist: Platform 8%, Shop 37%, Therapist 55%
+    // Independent: Platform 8%, Therapist 92%
+    const providerWithShop = await prisma.provider.findUnique({
+      where: { id: provider.id },
+      include: { shop: true },
+    });
+
+    const isShopAffiliated = providerWithShop?.shopId && providerWithShop.shop?.status === 'APPROVED';
+
+    let platformFee: number;
+    let providerEarning: number;
+    let shopEarning: number | null = null;
+
+    if (isShopAffiliated) {
+      // Shop-affiliated therapist
+      platformFee = serviceAmount * 0.08;
+      shopEarning = serviceAmount * 0.37;
+      providerEarning = serviceAmount * 0.55 + travelFee; // Therapist gets travel fee
+    } else {
+      // Independent therapist
+      platformFee = serviceAmount * 0.08;
+      providerEarning = serviceAmount * 0.92 + travelFee;
+    }
 
     const booking = await prisma.booking.create({
       data: {
@@ -195,6 +218,8 @@ class BookingService {
         totalAmount,
         platformFee,
         providerEarning,
+        shopId: isShopAffiliated ? providerWithShop.shopId : null,
+        shopEarning,
         customerNotes: data.customerNotes,
       },
       include: { service: true, provider: { include: { user: true } } },
@@ -431,33 +456,31 @@ class BookingService {
     if (status === 'COMPLETED') {
       updateData.completedAt = new Date();
 
-      // Get provider with shop info
-      const providerWithShop = await prisma.provider.findUnique({
-        where: { id: provider.id },
-        include: { shop: true },
-      });
+      // Earnings are pre-calculated in the booking (providerEarning, shopEarning)
+      // Shop therapist: Platform 8%, Shop 37%, Therapist 55%
+      // Independent: Platform 8%, Therapist 92%
 
-      if (providerWithShop?.shopId && providerWithShop.shop?.status === 'APPROVED') {
-        // Shop-affiliated therapist: earnings go to shop
+      if (booking.shopId && booking.shopEarning) {
+        // Shop-affiliated therapist: distribute to both shop and provider
         await prisma.shop.update({
-          where: { id: providerWithShop.shopId },
+          where: { id: booking.shopId },
           data: {
-            balance: { increment: booking.providerEarning },
-            totalEarnings: { increment: booking.providerEarning },
+            balance: { increment: booking.shopEarning },
+            totalEarnings: { increment: booking.shopEarning },
           },
         });
 
-        // Record shop earning in booking
-        updateData.shop = { connect: { id: providerWithShop.shopId } };
-        updateData.shopEarning = booking.providerEarning;
-
-        // Update provider's completed count only (no balance)
+        // Provider gets their 55% share
         await prisma.provider.update({
           where: { id: provider.id },
-          data: { completedBookings: { increment: 1 } },
+          data: {
+            balance: { increment: booking.providerEarning },
+            totalEarnings: { increment: booking.providerEarning },
+            completedBookings: { increment: 1 },
+          },
         });
       } else {
-        // Individual provider: earnings go to provider (existing logic)
+        // Individual provider: gets 92% (all non-platform earnings)
         await prisma.provider.update({
           where: { id: provider.id },
           data: {

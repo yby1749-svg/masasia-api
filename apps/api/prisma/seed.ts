@@ -369,11 +369,44 @@ async function main() {
     },
   });
 
-  // Link the test provider to this shop
-  await prisma.provider.update({
-    where: { id: provider.id },
-    data: { shopId: shop.id },
-  });
+  // Note: The test provider (Maria) stays independent - not linked to any shop
+  // She earns 92% (Platform 8%, Provider 92%)
+  // Shop therapists earn 55% (Platform 8%, Shop 37%, Provider 55%)
+
+  // Create sample bookings for independent provider (Maria) showing 92% earnings
+  for (let b = 0; b < 5; b++) {
+    const bookingDate = new Date();
+    bookingDate.setDate(bookingDate.getDate() - Math.floor(Math.random() * 30));
+
+    const amount = [800, 1000, 1100, 1200, 1400][Math.floor(Math.random() * 5)];
+    const platformFee = amount * 0.08; // 8% platform
+    const providerAmount = amount * 0.92; // 92% provider (independent)
+
+    const bookingNumber = `CMM${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    await prisma.booking.create({
+      data: {
+        bookingNumber,
+        customerId: customer.id,
+        providerId: provider.id,
+        serviceId: ['svc-thai', 'svc-swedish', 'svc-aroma'][Math.floor(Math.random() * 3)],
+        // No shopId - independent provider
+        status: 'COMPLETED',
+        scheduledAt: bookingDate,
+        duration: [60, 90, 120][Math.floor(Math.random() * 3)],
+        serviceAmount: amount,
+        totalAmount: amount,
+        platformFee,
+        providerEarning: providerAmount,
+        // No shopEarning - independent provider keeps 92%
+        addressText: 'Gramercy Residences, Makati',
+        latitude: 14.5586,
+        longitude: 121.0178,
+        completedAt: bookingDate,
+      },
+    });
+  }
+
+  console.log(`✅ Created 5 sample bookings for independent provider (Maria)`);
 
   // =========================================================================
   // SHOP THERAPISTS (10 therapists with KPI data)
@@ -518,7 +551,10 @@ async function main() {
   // =========================================================================
 
   const configs = [
-    { key: 'platform_fee_percentage', value: '20', type: 'number' },
+    { key: 'platform_fee_percentage', value: '8', type: 'number' },
+    { key: 'shop_fee_percentage', value: '37', type: 'number' },
+    { key: 'provider_shop_percentage', value: '55', type: 'number' },
+    { key: 'provider_independent_percentage', value: '92', type: 'number' },
     { key: 'early_bird_fee_percentage', value: '15', type: 'number' },
     { key: 'min_booking_hours_advance', value: '2', type: 'number' },
     { key: 'max_booking_days_advance', value: '14', type: 'number' },
