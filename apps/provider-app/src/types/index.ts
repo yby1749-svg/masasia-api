@@ -80,6 +80,10 @@ export interface Booking {
   duration: 90 | 120;
   status: BookingStatus;
   price: number;
+  totalAmount?: number;
+  serviceAmount?: number;
+  travelFee?: number;
+  addressText?: string;
   notes?: string;
   customer?: Customer;
   provider?: Provider;

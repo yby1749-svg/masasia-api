@@ -74,41 +74,61 @@ export function JobDashboardScreen() {
 
   const renderPendingJob = (job: Booking) => (
     <Card key={job.id} style={styles.jobCard}>
-      <View style={styles.jobHeader}>
-        <View style={styles.jobInfo}>
-          <Text style={styles.serviceName}>{job.service?.name}</Text>
-          <Text style={styles.customerName}>
-            {job.customer?.firstName} {job.customer?.lastName?.charAt(0)}.
-          </Text>
+      {/* Tappable header to view details */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('JobDetail', {bookingId: job.id})}
+        activeOpacity={0.7}>
+        <View style={styles.jobHeader}>
+          <View style={styles.jobInfo}>
+            <Text style={styles.serviceName}>{job.service?.name}</Text>
+            <Text style={styles.customerName}>
+              {job.customer?.firstName} {job.customer?.lastName?.charAt(0)}.
+            </Text>
+          </View>
+          <View style={styles.priceContainer}>
+            <Text style={styles.price}>P{job.totalAmount || job.price}</Text>
+            <Icon name="chevron-forward" size={16} color={colors.textLight} />
+          </View>
         </View>
-        <Text style={styles.price}>P{job.price}</Text>
-      </View>
-      <View style={styles.jobDetails}>
-        <View style={styles.detailRow}>
-          <Icon
-            name="calendar-outline"
-            size={16}
-            color={colors.textSecondary}
-          />
-          <Text style={styles.detailText}>
-            {format(new Date(job.scheduledAt), 'MMM d, h:mm a')}
-          </Text>
+        <View style={styles.jobDetails}>
+          <View style={styles.detailRow}>
+            <Icon
+              name="calendar-outline"
+              size={16}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.detailText}>
+              {format(new Date(job.scheduledAt), 'MMM d, h:mm a')}
+            </Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Icon name="time-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.detailText}>{job.duration} minutes</Text>
+          </View>
+          {/* Location with label (building/hotel name) */}
+          <View style={styles.detailRow}>
+            <Icon
+              name="location"
+              size={16}
+              color={colors.primary}
+            />
+            <View style={styles.locationInfo}>
+              {job.address?.label && (
+                <Text style={styles.locationLabel}>{job.address.label}</Text>
+              )}
+              <Text style={styles.detailText} numberOfLines={2}>
+                {job.address?.street}, {job.address?.city}
+              </Text>
+              {job.address?.notes && (
+                <Text style={styles.locationNotes} numberOfLines={1}>
+                  {job.address.notes}
+                </Text>
+              )}
+            </View>
+          </View>
         </View>
-        <View style={styles.detailRow}>
-          <Icon name="time-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.detailText}>{job.duration} minutes</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Icon
-            name="location-outline"
-            size={16}
-            color={colors.textSecondary}
-          />
-          <Text style={styles.detailText} numberOfLines={1}>
-            {job.address?.street}, {job.address?.city}
-          </Text>
-        </View>
-      </View>
+        <Text style={styles.tapHint}>Tap for details & map</Text>
+      </TouchableOpacity>
       <View style={styles.jobActions}>
         <Button
           title="Reject"
@@ -379,12 +399,17 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.success,
   },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   jobDetails: {
     marginBottom: spacing.md,
   },
   detailRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
     marginTop: spacing.xs,
   },
@@ -392,6 +417,28 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.textSecondary,
     flex: 1,
+  },
+  locationInfo: {
+    flex: 1,
+  },
+  locationLabel: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  locationNotes: {
+    ...typography.caption,
+    color: colors.primary,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  tapHint: {
+    ...typography.caption,
+    color: colors.textLight,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
   jobActions: {
     flexDirection: 'row',
