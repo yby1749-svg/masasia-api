@@ -201,6 +201,6 @@ export interface Notification {
   title: string;
   body: string;
   data?: Record<string, unknown>;
-  read: boolean;
+  isRead: boolean;
   createdAt: string;
 }

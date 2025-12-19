@@ -18,8 +18,8 @@ export function InboxScreen() {
 
   const renderNotification = ({item}: {item: Notification}) => (
     <View
-      style={[styles.notificationCard, !item.read && styles.unread]}
-      onTouchEnd={() => !item.read && markAsRead(item.id)}>
+      style={[styles.notificationCard, !item.isRead && styles.unread]}
+      onTouchEnd={() => !item.isRead && markAsRead(item.id)}>
       <View
         style={[styles.iconContainer, {backgroundColor: getIconBg(item.type)}]}>
         <Icon
@@ -32,7 +32,7 @@ export function InboxScreen() {
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.body}>{item.body}</Text>
       </View>
-      {!item.read && <View style={styles.unreadDot} />}
+      {!item.isRead && <View style={styles.unreadDot} />}
     </View>
   );
 

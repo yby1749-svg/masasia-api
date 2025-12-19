@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {StatusBar} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -8,15 +8,14 @@ import Toast from 'react-native-toast-message';
 import {RootNavigator} from './src/navigation';
 import {toastConfig} from './src/config/toast';
 import {useAuthStore} from './src/store';
+import {
+  registerForPushNotifications,
+  initializePushNotifications,
+  setupBackgroundMessageHandler,
+} from './src/services';
 
-// Firebase push notifications disabled for development
-// To enable, uncomment the imports and calls below after configuring Firebase
-// import {
-//   registerForPushNotifications,
-//   initializePushNotifications,
-//   setupBackgroundMessageHandler,
-// } from './src/services';
-// setupBackgroundMessageHandler();
+// Initialize background message handler (must be called outside component)
+setupBackgroundMessageHandler();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,17 +27,18 @@ const queryClient = new QueryClient({
 });
 
 function AppContent(): React.JSX.Element {
-  const {isAuthenticated: _isAuthenticated} = useAuthStore();
+  const {isAuthenticated} = useAuthStore();
 
-  // Firebase push notifications disabled for development
-  // useEffect(() => {
-  //   let cleanup: (() => void) | undefined;
-  //   if (isAuthenticated) {
-  //     registerForPushNotifications();
-  //     cleanup = initializePushNotifications();
-  //   }
-  //   return () => { if (cleanup) cleanup(); };
-  // }, [isAuthenticated]);
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    if (isAuthenticated) {
+      registerForPushNotifications();
+      cleanup = initializePushNotifications();
+    }
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [isAuthenticated]);
 
   return <RootNavigator />;
 }

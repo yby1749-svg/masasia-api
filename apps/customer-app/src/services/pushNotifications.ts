@@ -174,7 +174,7 @@ export function setupForegroundMessageListener(): () => void {
         title: notification.title || 'New Notification',
         body: notification.body || '',
         data: data as Record<string, unknown>,
-        read: false,
+        isRead: false,
         createdAt: new Date().toISOString(),
       };
 
