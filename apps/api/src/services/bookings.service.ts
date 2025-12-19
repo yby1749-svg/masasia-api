@@ -110,17 +110,34 @@ class BookingService {
   }
 
   async listBookings(userId: string, role: string, query: BookingQuery) {
-    const where = role === 'provider' 
-      ? { provider: { userId } }
-      : { customerId: userId };
-    
+    const isProvider = role === 'provider';
+    const hiddenFlag = isProvider ? '[HIDDEN_BY_PROVIDER]' : '[HIDDEN_BY_CUSTOMER]';
+    const notesField = isProvider ? 'providerNotes' : 'customerNotes';
+
+    // Build where clause - handle null notes (NOT contains doesn't work with null)
+    const where = isProvider
+      ? {
+          provider: { userId },
+          OR: [
+            { providerNotes: null },
+            { NOT: { providerNotes: { contains: hiddenFlag } } },
+          ],
+        }
+      : {
+          customerId: userId,
+          OR: [
+            { customerNotes: null },
+            { NOT: { customerNotes: { contains: hiddenFlag } } },
+          ],
+        };
+
     const bookings = await prisma.booking.findMany({
       where,
-      include: { service: true, provider: { include: { user: true } } },
+      include: { service: true, provider: { include: { user: true } }, customer: true },
       orderBy: { createdAt: 'desc' },
-      take: parseInt(query.limit || '20'),
+      take: parseInt(query.limit || '100'),
     });
-    return { data: bookings, pagination: { page: 1, limit: 20, total: bookings.length } };
+    return { data: bookings, pagination: { page: 1, limit: 100, total: bookings.length } };
   }
 
   async createBooking(customerId: string, data: CreateBookingData) {
@@ -649,6 +666,43 @@ class BookingService {
         data: { bookingId, type: 'SOS', severity: 'CRITICAL' },
       });
     }
+  }
+
+  async hideBooking(userId: string, bookingId: string) {
+    // Check if booking exists and belongs to the user
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        OR: [
+          { customerId: userId },
+          { provider: { userId } },
+        ],
+      },
+    });
+
+    if (!booking) {
+      throw new AppError('Booking not found', 404);
+    }
+
+    // Only allow hiding completed, cancelled, or rejected bookings
+    const hidableStatuses = ['COMPLETED', 'CANCELLED', 'REJECTED'];
+    if (!hidableStatuses.includes(booking.status)) {
+      throw new AppError('Can only hide completed or cancelled bookings', 400);
+    }
+
+    // Soft delete by updating a hidden flag
+    // For now, we'll just mark it in the customerNotes/providerNotes field
+    // In production, you'd add a hiddenByCustomer/hiddenByProvider boolean field
+    const isCustomer = booking.customerId === userId;
+
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: isCustomer
+        ? { customerNotes: (booking.customerNotes || '') + ' [HIDDEN_BY_CUSTOMER]' }
+        : { providerNotes: (booking.providerNotes || '') + ' [HIDDEN_BY_PROVIDER]' },
+    });
+
+    return { success: true };
   }
 }
 

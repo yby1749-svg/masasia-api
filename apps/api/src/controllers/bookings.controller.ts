@@ -75,3 +75,10 @@ export const triggerSOS = async (req: Request, res: Response, next: NextFunction
     res.json({ success: true, message: 'SOS triggered' });
   } catch (error) { next(error); }
 };
+
+export const hideBooking = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    await bookingService.hideBooking(req.user!.id, req.params.bookingId);
+    res.json({ success: true, message: 'Booking hidden from history' });
+  } catch (error) { next(error); }
+};

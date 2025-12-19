@@ -63,8 +63,6 @@ export function ProviderDetailScreen() {
     );
   }
 
-  const isShop = provider.providerType === 'shop';
-
   return (
     <View style={styles.container}>
       <ScrollView>
@@ -74,17 +72,6 @@ export function ProviderDetailScreen() {
             <Icon name="person" size={48} color={colors.textLight} />
           </View>
           <Text style={styles.name}>{provider.displayName}</Text>
-          {/* Provider Type Badge */}
-          <View style={[styles.typeBadge, isShop ? styles.shopBadge : styles.independentBadge]}>
-            <Icon
-              name={isShop ? 'business' : 'person'}
-              size={14}
-              color={isShop ? colors.primary : colors.success}
-            />
-            <Text style={[styles.typeBadgeText, isShop ? styles.shopBadgeText : styles.independentBadgeText]}>
-              {isShop ? provider.shopName || 'Shop Therapist' : 'Independent Therapist'}
-            </Text>
-          </View>
           <View style={styles.ratingContainer}>
             <Icon name="star" size={18} color={colors.warning} />
             <Text style={styles.rating}>{provider.rating.toFixed(1)}</Text>
@@ -186,35 +173,6 @@ const styles = StyleSheet.create({
   name: {
     ...typography.h2,
     color: colors.text,
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  shopBadge: {
-    backgroundColor: colors.primary + '15',
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-  },
-  independentBadge: {
-    backgroundColor: colors.success + '15',
-    borderWidth: 1,
-    borderColor: colors.success + '30',
-  },
-  typeBadgeText: {
-    ...typography.bodySmall,
-    fontWeight: '600',
-  },
-  shopBadgeText: {
-    color: colors.primary,
-  },
-  independentBadgeText: {
-    color: colors.success,
   },
   ratingContainer: {
     flexDirection: 'row',

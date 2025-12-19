@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
-import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
+import {useRoute, useNavigation, useFocusEffect, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -39,13 +40,21 @@ export function BookingDetailScreen() {
   const queryClient = useQueryClient();
   const {showSuccess, showError} = useUIStore();
 
-  const {data: booking, isLoading} = useQuery({
+  const {data: booking, isLoading, refetch, isRefetching} = useQuery({
     queryKey: ['booking', bookingId],
     queryFn: async () => {
       const response = await bookingsApi.getBooking(bookingId);
       return response.data.data;
     },
+    refetchInterval: 10000, // Auto-refresh every 10 seconds for active bookings
   });
+
+  // Refetch when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const cancelMutation = useMutation({
     mutationFn: async (reason: string) => {
@@ -119,14 +128,42 @@ export function BookingDetailScreen() {
     );
   }
 
-  const canCancel = ['PENDING', 'CONFIRMED'].includes(booking.status);
+  const canCancel = ['PENDING', 'ACCEPTED'].includes(booking.status);
   const canReview =
     booking.status === 'COMPLETED' && !booking.review && booking.provider;
   const canPay =
-    ['PENDING', 'CONFIRMED'].includes(booking.status) &&
+    ['PENDING', 'ACCEPTED'].includes(booking.status) &&
     booking.payment?.status !== 'PAID' &&
     booking.payment?.method !== 'CASH';
-  const canTrack = ['PROVIDER_EN_ROUTE', 'PROVIDER_ASSIGNED'].includes(booking.status);
+  const canTrack = ['PROVIDER_EN_ROUTE', 'PROVIDER_ARRIVED'].includes(booking.status);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PENDING': return colors.warning;
+      case 'ACCEPTED': return colors.info;
+      case 'PROVIDER_EN_ROUTE': return colors.primary;
+      case 'PROVIDER_ARRIVED': return colors.primary;
+      case 'IN_PROGRESS': return colors.success;
+      case 'COMPLETED': return colors.success;
+      case 'CANCELLED': return colors.error;
+      case 'REJECTED': return colors.error;
+      default: return colors.textSecondary;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PENDING': return 'Waiting for Confirmation';
+      case 'ACCEPTED': return 'Booking Confirmed';
+      case 'PROVIDER_EN_ROUTE': return 'Therapist On The Way';
+      case 'PROVIDER_ARRIVED': return 'Therapist Has Arrived';
+      case 'IN_PROGRESS': return 'Service In Progress';
+      case 'COMPLETED': return 'Service Completed';
+      case 'CANCELLED': return 'Booking Cancelled';
+      case 'REJECTED': return 'Booking Declined';
+      default: return status.replace(/_/g, ' ');
+    }
+  };
 
   const handlePayNow = () => {
     paymentMutation.mutate();
@@ -146,7 +183,19 @@ export function BookingDetailScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+      }>
+      {/* Booking Status Banner */}
+      <View style={[styles.statusBanner, {backgroundColor: getStatusColor(booking.status) + '15'}]}>
+        <View style={[styles.statusDot, {backgroundColor: getStatusColor(booking.status)}]} />
+        <Text style={[styles.statusBannerText, {color: getStatusColor(booking.status)}]}>
+          {getStatusLabel(booking.status)}
+        </Text>
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Service</Text>
         <View style={styles.card}>
@@ -309,6 +358,24 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.body,
     color: colors.textSecondary,
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    borderRadius: borderRadius.lg,
+    gap: spacing.sm,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  statusBannerText: {
+    ...typography.body,
+    fontWeight: '600',
   },
   section: {
     padding: spacing.lg,

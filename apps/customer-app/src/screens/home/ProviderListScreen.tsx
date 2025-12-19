@@ -59,7 +59,6 @@ export function ProviderListScreen() {
   const providers = data?.pages.flatMap(page => page.data) || [];
 
   const renderProvider = ({item}: {item: Provider}) => {
-    const isShop = item.providerType === 'shop';
     return (
       <TouchableOpacity
         style={styles.providerCard}
@@ -70,19 +69,7 @@ export function ProviderListScreen() {
           <Icon name="person" size={32} color={colors.textLight} />
         </View>
         <View style={styles.providerInfo}>
-          <View style={styles.providerNameRow}>
-            <Text style={styles.providerName}>{item.displayName}</Text>
-            <View style={[styles.typeBadge, isShop ? styles.shopBadge : styles.independentBadge]}>
-              <Icon
-                name={isShop ? 'business' : 'person'}
-                size={10}
-                color={isShop ? colors.primary : colors.success}
-              />
-              <Text style={[styles.typeBadgeText, isShop ? styles.shopBadgeText : styles.independentBadgeText]}>
-                {isShop ? item.shopName || 'Shop' : 'Independent'}
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.providerName}>{item.displayName}</Text>
           <View style={styles.providerMeta}>
             <Icon name="star" size={14} color={colors.warning} />
             <Text style={styles.providerRating}>{item.rating.toFixed(1)}</Text>
@@ -179,36 +166,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '600',
     color: colors.text,
-  },
-  providerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    gap: 3,
-  },
-  shopBadge: {
-    backgroundColor: colors.primary + '20',
-  },
-  independentBadge: {
-    backgroundColor: colors.success + '20',
-  },
-  typeBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  shopBadgeText: {
-    color: colors.primary,
-  },
-  independentBadgeText: {
-    color: colors.success,
   },
   providerMeta: {
     flexDirection: 'row',

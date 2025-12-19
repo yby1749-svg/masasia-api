@@ -55,4 +55,8 @@ export const bookingsApi = {
         status: 'PENDING',
       },
     }),
+
+  // Hide booking from history
+  hideBooking: (bookingId: string) =>
+    apiClient.delete(`/bookings/${bookingId}/hide`),
 };

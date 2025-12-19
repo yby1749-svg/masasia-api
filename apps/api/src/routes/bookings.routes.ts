@@ -142,6 +142,28 @@ router.post('/:bookingId/cancel', bookingController.cancelBooking);
 
 /**
  * @swagger
+ * /bookings/{bookingId}/hide:
+ *   delete:
+ *     summary: Hide booking from history
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookingId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Booking hidden from history
+ *       404:
+ *         description: Booking not found
+ */
+router.delete('/:bookingId/hide', bookingController.hideBooking);
+
+/**
+ * @swagger
  * /bookings/{bookingId}/location:
  *   get:
  *     summary: Get provider location during active booking

@@ -108,6 +108,9 @@ export const bookingsApi = {
 
   cancelBooking: (id: string, reason?: string) =>
     apiClient.post(`/bookings/${id}/cancel`, {reason}),
+
+  hideBooking: (id: string) =>
+    apiClient.delete(`/bookings/${id}/hide`),
 };
 
 // Payments
