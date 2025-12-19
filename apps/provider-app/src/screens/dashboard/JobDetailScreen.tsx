@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
+  Dimensions,
 } from 'react-native';
 import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -14,12 +15,15 @@ import {useQuery} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {format} from 'date-fns';
 import Toast from 'react-native-toast-message';
+import MapView, {Marker, PROVIDER_DEFAULT} from 'react-native-maps';
 
 import {Button, Card} from '@components';
 import {bookingsApi} from '@api';
 import {useJobStore} from '@store';
 import {colors, typography, spacing, borderRadius} from '@config/theme';
 import type {DashboardStackParamList, BookingStatus} from '@types';
+
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 type RouteProps = RouteProp<DashboardStackParamList, 'JobDetail'>;
 type NavigationProp = NativeStackNavigationProp<DashboardStackParamList, 'JobDetail'>;
@@ -114,20 +118,18 @@ export function JobDetailScreen() {
         ],
       );
     } else if (nextStatus === 'PROVIDER_EN_ROUTE') {
-      // Update status and navigate to map
+      // Update status and open external maps
       try {
         await updateJobStatus(bookingId, nextStatus);
         refetch();
-        // Navigate to NavigationScreen
+        // Open external maps for navigation
         const lat = booking?.latitude || booking?.address?.latitude;
         const lng = booking?.longitude || booking?.address?.longitude;
         if (lat && lng) {
-          navigation.navigate('Navigation', {
-            bookingId,
-            destination: {
-              lat,
-              lng,
-            },
+          const label = encodeURIComponent(booking?.addressText || 'Customer Location');
+          const url = `maps:0,0?q=${lat},${lng}(${label})`;
+          Linking.openURL(url).catch(() => {
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
           });
         }
       } catch {
@@ -159,13 +161,13 @@ export function JobDetailScreen() {
     if (!lat || !lng) {
       return;
     }
-    // Navigate to in-app navigation screen
-    navigation.navigate('Navigation', {
-      bookingId,
-      destination: {
-        lat,
-        lng,
-      },
+
+    // Open external maps app
+    const label = encodeURIComponent(booking?.addressText || 'Customer Location');
+    const url = `maps:0,0?q=${lat},${lng}(${label})`;
+    Linking.openURL(url).catch(() => {
+      // Fallback to Google Maps web
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
     });
   };
 
@@ -278,7 +280,10 @@ export function JobDetailScreen() {
           <View style={styles.addressHeader}>
             <Text style={styles.sectionTitle}>Location</Text>
             <TouchableOpacity onPress={openMaps}>
-              <Text style={styles.navigateText}>Navigate</Text>
+              <View style={styles.openMapsButton}>
+                <Icon name="navigate" size={16} color={colors.primary} />
+                <Text style={styles.navigateText}>Open Maps</Text>
+              </View>
             </TouchableOpacity>
           </View>
           <View style={styles.addressContent}>
@@ -299,6 +304,37 @@ export function JobDetailScreen() {
               )}
             </View>
           </View>
+          {/* Embedded Map */}
+          {(booking.latitude || booking.address?.latitude) && (
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                provider={PROVIDER_DEFAULT}
+                initialRegion={{
+                  latitude: booking.latitude || booking.address?.latitude || 14.5995,
+                  longitude: booking.longitude || booking.address?.longitude || 120.9842,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                pitchEnabled={false}
+                rotateEnabled={false}>
+                <Marker
+                  coordinate={{
+                    latitude: booking.latitude || booking.address?.latitude || 14.5995,
+                    longitude: booking.longitude || booking.address?.longitude || 120.9842,
+                  }}>
+                  <View style={styles.markerContainer}>
+                    <Icon name="location" size={24} color={colors.error} />
+                  </View>
+                </Marker>
+              </MapView>
+              <TouchableOpacity style={styles.mapOverlay} onPress={openMaps}>
+                <Text style={styles.mapOverlayText}>Tap to open in Maps</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </Card>
 
         {/* Status Progress */}
@@ -495,9 +531,42 @@ const styles = StyleSheet.create({
   },
   addressNotes: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
+    color: colors.primary,
     fontStyle: 'italic',
     marginTop: spacing.xs,
+  },
+  openMapsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  mapContainer: {
+    marginTop: spacing.md,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    height: 180,
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  markerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  mapOverlayText: {
+    ...typography.bodySmall,
+    color: '#fff',
+    fontWeight: '600',
   },
   progressContainer: {
     flexDirection: 'row',
