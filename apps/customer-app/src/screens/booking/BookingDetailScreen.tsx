@@ -126,6 +126,7 @@ export function BookingDetailScreen() {
     ['PENDING', 'CONFIRMED'].includes(booking.status) &&
     booking.payment?.status !== 'PAID' &&
     booking.payment?.method !== 'CASH';
+  const canTrack = ['PROVIDER_EN_ROUTE', 'PROVIDER_ASSIGNED'].includes(booking.status);
 
   const handlePayNow = () => {
     paymentMutation.mutate();
@@ -138,6 +139,10 @@ export function BookingDetailScreen() {
         providerId: booking.provider.id,
       });
     }
+  };
+
+  const handleTrackProvider = () => {
+    navigation.navigate('TrackProvider', {bookingId: booking.id});
   };
 
   return (
@@ -253,8 +258,15 @@ export function BookingDetailScreen() {
         </View>
       </View>
 
-      {(canCancel || canReview || canPay) && (
+      {(canCancel || canReview || canPay || canTrack) && (
         <View style={styles.footer}>
+          {canTrack && (
+            <Button
+              title="Track Therapist"
+              onPress={handleTrackProvider}
+              style={styles.trackButton}
+            />
+          )}
           {canPay && (
             <Button
               title="Pay Now"
@@ -412,6 +424,9 @@ const styles = StyleSheet.create({
   footer: {
     padding: spacing.lg,
     gap: spacing.md,
+  },
+  trackButton: {
+    marginBottom: 0,
   },
   payButton: {
     marginBottom: 0,

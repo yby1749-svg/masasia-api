@@ -12,6 +12,7 @@ import {BookingFlowScreen} from '@screens/booking/BookingFlowScreen';
 import {PaymentWebViewScreen} from '@screens/booking/PaymentWebViewScreen';
 import {PaymentCallbackScreen} from '@screens/booking/PaymentCallbackScreen';
 import {WriteReviewScreen} from '@screens/booking/WriteReviewScreen';
+import {TrackProviderScreen} from '@screens/booking/TrackProviderScreen';
 import {InboxScreen} from '@screens/inbox/InboxScreen';
 import {ProfileScreen} from '@screens/profile/ProfileScreen';
 import {EditProfileScreen} from '@screens/profile/EditProfileScreen';
@@ -38,7 +39,7 @@ export type HomeStackParamList = {
 export type BookingsStackParamList = {
   BookingList: undefined;
   BookingDetail: {bookingId: string};
-  Tracking: {bookingId: string};
+  TrackProvider: {bookingId: string};
   WriteReview: {bookingId: string; providerId: string};
 };
 
@@ -105,6 +106,11 @@ function BookingsStackNavigator() {
         name="BookingDetail"
         component={BookingDetailScreen}
         options={{title: 'Booking Details'}}
+      />
+      <BookingsStack.Screen
+        name="TrackProvider"
+        component={TrackProviderScreen}
+        options={{title: 'Track Therapist'}}
       />
       <BookingsStack.Screen
         name="WriteReview"

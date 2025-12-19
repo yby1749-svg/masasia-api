@@ -18,6 +18,7 @@ import Toast from 'react-native-toast-message';
 
 import {Button} from '@components';
 import {useJobStore, useStatusStore} from '@store';
+import {socketService} from '@services/socket';
 import {colors, typography, spacing, borderRadius} from '@config/theme';
 import type {DashboardStackParamList} from '@types';
 
@@ -50,7 +51,15 @@ export function NavigationScreen() {
     longitude: destination.lng,
   };
 
-  // Watch provider location
+  // Join booking room on mount
+  useEffect(() => {
+    socketService.joinBookingRoom(bookingId);
+    return () => {
+      socketService.leaveBookingRoom(bookingId);
+    };
+  }, [bookingId]);
+
+  // Watch provider location and emit via socket
   useEffect(() => {
     const watchId = Geolocation.watchPosition(
       position => {
@@ -59,6 +68,14 @@ export function NavigationScreen() {
           longitude: position.coords.longitude,
         };
         setProviderLocation(newLocation);
+
+        // Emit location to socket for customer tracking
+        socketService.emit('location:update', {
+          bookingId,
+          latitude: newLocation.latitude,
+          longitude: newLocation.longitude,
+          accuracy: position.coords.accuracy,
+        });
       },
       error => {
         console.error('Location error:', error);
@@ -74,7 +91,7 @@ export function NavigationScreen() {
     return () => {
       Geolocation.clearWatch(watchId);
     };
-  }, []);
+  }, [bookingId]);
 
   // Get current location on mount
   useEffect(() => {
