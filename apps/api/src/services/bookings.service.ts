@@ -8,6 +8,7 @@ import { locationCache } from '../config/redis.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { paymentService } from './payments.service.js';
 import { notificationService } from './notifications.service.js';
+import * as walletService from './wallet.service.js';
 import { sendNotificationToUser, notifyBookingUpdate, notifyBookingCancelled } from '../socket/index.js';
 import { sendPushToUser } from '../utils/push.js';
 import { format, startOfDay, addMinutes, parse } from 'date-fns';
@@ -352,15 +353,33 @@ class BookingService {
   }
 
   async acceptBooking(userId: string, bookingId: string) {
-    const provider = await prisma.provider.findUnique({ where: { userId } });
+    const provider = await prisma.provider.findUnique({
+      where: { userId },
+      include: { shop: true },
+    });
     if (!provider) throw new AppError('Provider not found', 404);
 
     const booking = await prisma.booking.findFirst({
       where: { id: bookingId, providerId: provider.id },
-      include: { service: true },
+      include: { service: true, payment: true },
     });
     if (!booking) throw new AppError('Booking not found', 404);
     if (booking.status !== 'PENDING') throw new AppError('Cannot accept this booking', 400);
+
+    // Check if this is a CASH payment - if so, deduct platform fee from wallet
+    const isCashPayment = booking.payment?.method === 'CASH';
+
+    if (isCashPayment) {
+      const serviceAmount = booking.serviceAmount;
+
+      if (provider.shopId && provider.shop?.status === 'APPROVED') {
+        // Shop-affiliated therapist: deduct from shop wallet
+        await walletService.deductShopPlatformFee(provider.shopId, bookingId, serviceAmount);
+      } else {
+        // Independent therapist: deduct from provider wallet
+        await walletService.deductProviderPlatformFee(provider.id, bookingId, serviceAmount);
+      }
+    }
 
     const updatedBooking = await prisma.booking.update({
       where: { id: bookingId },

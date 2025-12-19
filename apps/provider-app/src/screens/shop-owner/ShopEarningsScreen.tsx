@@ -147,6 +147,22 @@ export function ShopEarningsScreen() {
         </Text>
       </TouchableOpacity>
 
+      {/* Wallet Button */}
+      <TouchableOpacity
+        style={styles.walletButton}
+        onPress={() => navigation.navigate('ShopWallet')}>
+        <View style={styles.walletButtonContent}>
+          <Icon name="wallet" size={24} color={colors.primary} />
+          <View style={styles.walletButtonText}>
+            <Text style={styles.walletButtonTitle}>Shop Wallet</Text>
+            <Text style={styles.walletButtonSubtitle}>
+              Top up for cash bookings
+            </Text>
+          </View>
+        </View>
+        <Icon name="chevron-forward" size={20} color={colors.textSecondary} />
+      </TouchableOpacity>
+
       {/* Summary Card */}
       <View style={styles.summaryCard}>
         <View style={styles.balanceSection}>
@@ -380,6 +396,37 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.primary,
     marginTop: 4,
+  },
+  // Wallet Button
+  walletButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: colors.surface,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  walletButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  walletButtonText: {
+    flex: 1,
+  },
+  walletButtonTitle: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  walletButtonSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   summaryCard: {
     backgroundColor: colors.primary,

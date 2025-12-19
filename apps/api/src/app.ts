@@ -21,6 +21,7 @@ import notificationRoutes from './routes/notifications.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import serviceRoutes from './routes/services.routes.js';
 import shopRoutes from './routes/shops.routes.js';
+import walletRoutes from './routes/wallet.routes.js';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -109,6 +110,7 @@ app.use(`${API_PREFIX}/reports`, reportRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/services`, serviceRoutes);
 app.use(`${API_PREFIX}/shops`, shopRoutes);
+app.use(`${API_PREFIX}/wallet`, walletRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 
 // ============================================================================

@@ -142,6 +142,22 @@ export function EarningsScreen() {
             </Card>
           )}
 
+        {/* Wallet Button */}
+        <TouchableOpacity
+          style={styles.walletButton}
+          onPress={() => navigation.navigate('Wallet')}>
+          <View style={styles.walletButtonContent}>
+            <Icon name="wallet" size={24} color={colors.primary} />
+            <View style={styles.walletButtonText}>
+              <Text style={styles.walletButtonTitle}>My Wallet</Text>
+              <Text style={styles.walletButtonSubtitle}>
+                Top up for cash bookings
+              </Text>
+            </View>
+          </View>
+          <Icon name="chevron-forward" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+
         {/* Earnings History */}
         <View style={styles.historySection}>
           <Text style={styles.sectionTitle}>Recent Earnings</Text>
@@ -343,6 +359,37 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: '600',
     color: colors.text,
+  },
+  // Wallet Button
+  walletButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  walletButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  walletButtonText: {
+    flex: 1,
+  },
+  walletButtonTitle: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  walletButtonSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   historySection: {
     padding: spacing.lg,

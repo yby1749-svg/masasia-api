@@ -244,6 +244,7 @@ export type ScheduleStackParamList = {
 
 export type EarningsStackParamList = {
   Earnings: undefined;
+  Wallet: undefined;
   PayoutRequest: undefined;
   PayoutDetail: {payoutId: string};
 };
@@ -286,6 +287,7 @@ export type ShopTherapistsStackParamList = {
 
 export type ShopEarningsStackParamList = {
   ShopEarnings: undefined;
+  ShopWallet: undefined;
   ShopPayoutRequest: undefined;
   ShopPayoutDetail: {payoutId: string};
 };

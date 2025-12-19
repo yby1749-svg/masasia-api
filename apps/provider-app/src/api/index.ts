@@ -8,6 +8,7 @@ export {providerShopApi, shopOwnerApi} from './shops';
 export {notificationsApi} from './notifications';
 export {reviewsApi} from './reviews';
 export {blockedDatesApi} from './blocked-dates';
+export {walletApi} from './wallet';
 export type {
   Shop,
   ShopInvitation,
@@ -19,3 +20,4 @@ export type {
 export type {NotificationItem} from './notifications';
 export type {ReviewsResponse} from './reviews';
 export type {BlockedDate} from './blocked-dates';
+export type {WalletBalance, WalletTransaction, TopUpData, FeeCheckResult} from './wallet';

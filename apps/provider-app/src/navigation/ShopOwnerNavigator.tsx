@@ -16,6 +16,7 @@ import {ShopDashboardScreen} from '../screens/shop-owner/ShopDashboardScreen';
 import {ShopTherapistsScreen} from '../screens/shop-owner/ShopTherapistsScreen';
 import {ShopEarningsScreen} from '../screens/shop-owner/ShopEarningsScreen';
 import {ShopPayoutRequestScreen} from '../screens/shop-owner/ShopPayoutRequestScreen';
+import {ShopWalletScreen} from '../screens/shop-owner/ShopWalletScreen';
 import {ShopProfileScreen} from '../screens/shop-owner/ShopProfileScreen';
 import {SendInvitationScreen} from '../screens/shop-owner/SendInvitationScreen';
 import {TherapistMapScreen} from '../screens/shop-owner/TherapistMapScreen';
@@ -97,6 +98,11 @@ function ShopEarningsNavigator() {
         name="ShopEarnings"
         component={ShopEarningsScreen}
         options={{title: 'Earnings'}}
+      />
+      <EarningsStack.Screen
+        name="ShopWallet"
+        component={ShopWalletScreen}
+        options={{title: 'Shop Wallet'}}
       />
       <EarningsStack.Screen
         name="ShopPayoutRequest"

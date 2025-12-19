@@ -1,6 +1,7 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {EarningsScreen} from '@screens/earnings/EarningsScreen';
+import {WalletScreen} from '@screens/earnings/WalletScreen';
 import {PayoutRequestScreen} from '@screens/earnings/PayoutRequestScreen';
 import type {EarningsStackParamList} from '@types';
 import {colors} from '@config/theme';
@@ -21,6 +22,11 @@ export function EarningsNavigator() {
         name="Earnings"
         component={EarningsScreen}
         options={{title: 'Earnings'}}
+      />
+      <Stack.Screen
+        name="Wallet"
+        component={WalletScreen}
+        options={{title: 'My Wallet'}}
       />
       <Stack.Screen
         name="PayoutRequest"

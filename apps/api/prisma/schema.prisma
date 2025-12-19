@@ -952,9 +952,62 @@ model AppConfig {
   key       String   @unique
   value     String
   type      String   @default("string") // string, number, boolean, json
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([key])
+}
+
+// ----------------------------------------------------------------------------
+// WalletTransaction - 지갑 거래 내역
+// ----------------------------------------------------------------------------
+enum WalletTransactionType {
+  TOP_UP              // 충전
+  PLATFORM_FEE        // 플랫폼 수수료 차감
+  PAYOUT              // 출금
+  EARNING             // 수익 입금
+  REFUND              // 환불
+  ADJUSTMENT          // 관리자 조정
+}
+
+enum WalletOwnerType {
+  PROVIDER
+  SHOP
+}
+
+model WalletTransaction {
+  id              String                @id @default(cuid())
+
+  // 지갑 소유자 (Provider 또는 Shop)
+  ownerType       WalletOwnerType
+  providerId      String?
+  shopId          String?
+
+  // 거래 정보
+  type            WalletTransactionType
+  amount          Float                 // 양수: 입금, 음수: 출금
+  balanceBefore   Float                 // 거래 전 잔액
+  balanceAfter    Float                 // 거래 후 잔액
+
+  // 참조 (관련 예약 또는 출금)
+  bookingId       String?
+  payoutId        String?
+
+  // 결제 정보 (충전의 경우)
+  paymentMethod   PaymentMethod?
+  paymentRef      String?               // 결제 참조번호 (GCash ref 등)
+
+  // 상태
+  status          PaymentStatus         @default(COMPLETED)
+
+  description     String?
+  processedBy     String?               // 관리자 조정의 경우
+
+  createdAt       DateTime              @default(now())
+
+  @@index([ownerType, providerId])
+  @@index([ownerType, shopId])
+  @@index([type])
+  @@index([createdAt])
 }
