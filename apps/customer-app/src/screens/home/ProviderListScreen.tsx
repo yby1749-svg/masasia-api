@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -65,9 +66,16 @@ export function ProviderListScreen() {
         onPress={() =>
           navigation.navigate('ProviderDetail', {providerId: item.id})
         }>
-        <View style={styles.providerAvatar}>
-          <Icon name="person" size={32} color={colors.textLight} />
-        </View>
+        {item.photoUrl ? (
+          <Image
+            source={{uri: item.photoUrl}}
+            style={styles.providerAvatarImage}
+          />
+        ) : (
+          <View style={styles.providerAvatar}>
+            <Icon name="person" size={32} color={colors.textLight} />
+          </View>
+        )}
         <View style={styles.providerInfo}>
           <Text style={styles.providerName}>{item.displayName}</Text>
           <View style={styles.providerMeta}>
@@ -157,6 +165,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  providerAvatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: borderRadius.full,
   },
   providerInfo: {
     flex: 1,

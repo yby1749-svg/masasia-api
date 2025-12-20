@@ -6,8 +6,19 @@ import {
   ActivityIndicator,
   ViewStyle,
   TextStyle,
+  View,
 } from 'react-native';
-import {colors, typography, borderRadius, spacing} from '@config/theme';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
+import {
+  colors,
+  typography,
+  borderRadius,
+  spacing,
+  shadows,
+  gradients,
+  componentSizes,
+} from '@config/theme';
 
 interface ButtonProps {
   title: string;
@@ -17,6 +28,7 @@ interface ButtonProps {
     | 'secondary'
     | 'outline'
     | 'ghost'
+    | 'gradient'
     | 'success'
     | 'danger';
   size?: 'sm' | 'md' | 'lg';
@@ -24,6 +36,9 @@ interface ButtonProps {
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  icon?: string;
+  iconPosition?: 'left' | 'right';
+  fullWidth?: boolean;
 }
 
 export function Button({
@@ -35,81 +50,179 @@ export function Button({
   disabled = false,
   style,
   textStyle,
+  icon,
+  iconPosition = 'left',
+  fullWidth = false,
 }: ButtonProps) {
+  const isGradient = variant === 'gradient' || variant === 'primary';
+  const isOutlineOrGhost = variant === 'outline' || variant === 'ghost';
+
+  const getHeight = () => {
+    switch (size) {
+      case 'sm':
+        return componentSizes.buttonHeightSmall;
+      case 'lg':
+        return 56;
+      default:
+        return componentSizes.buttonHeight;
+    }
+  };
+
+  const getIconSize = () => {
+    switch (size) {
+      case 'sm':
+        return 18;
+      case 'lg':
+        return 24;
+      default:
+        return 20;
+    }
+  };
+
+  const getTextColor = () => {
+    if (isOutlineOrGhost) return colors.primary;
+    return colors.textInverse;
+  };
+
+  const buttonContent = (
+    <View style={styles.content}>
+      {loading ? (
+        <ActivityIndicator color={getTextColor()} size="small" />
+      ) : (
+        <>
+          {icon && iconPosition === 'left' && (
+            <Icon
+              name={icon}
+              size={getIconSize()}
+              color={getTextColor()}
+              style={styles.iconLeft}
+            />
+          )}
+          <Text
+            style={[
+              styles.text,
+              styles[`text_${getTextStyleKey(variant)}`],
+              styles[`textSize_${size}`],
+              disabled && styles.textDisabled,
+              textStyle,
+            ]}>
+            {title}
+          </Text>
+          {icon && iconPosition === 'right' && (
+            <Icon
+              name={icon}
+              size={getIconSize()}
+              color={getTextColor()}
+              style={styles.iconRight}
+            />
+          )}
+        </>
+      )}
+    </View>
+  );
+
   const buttonStyles = [
     styles.button,
-    styles[variant],
-    styles[`size_${size}`],
+    {height: getHeight()},
+    fullWidth && styles.fullWidth,
     disabled && styles.disabled,
     style,
   ];
 
-  const textStyles = [
-    styles.text,
-    styles[`text_${variant}`],
-    styles[`textSize_${size}`],
-    disabled && styles.textDisabled,
-    textStyle,
-  ];
+  if (isGradient && !disabled) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={disabled || loading}
+        activeOpacity={0.85}
+        style={[buttonStyles, shadows.primaryGlow]}>
+        <LinearGradient
+          colors={gradients.primary as [string, string]}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 0}}
+          style={[styles.gradient, {height: getHeight()}]}>
+          {buttonContent}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
-      style={buttonStyles}
+      style={[
+        buttonStyles,
+        styles[getBackgroundStyleKey(variant)],
+        !isOutlineOrGhost && shadows.md,
+      ]}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.8}>
-      {loading ? (
-        <ActivityIndicator
-          color={
-            variant === 'outline' || variant === 'ghost'
-              ? colors.primary
-              : colors.textInverse
-          }
-        />
-      ) : (
-        <Text style={textStyles}>{title}</Text>
-      )}
+      activeOpacity={0.85}>
+      {buttonContent}
     </TouchableOpacity>
   );
+}
+
+function getTextStyleKey(
+  variant: string,
+): 'primary' | 'secondary' | 'outline' | 'ghost' | 'success' | 'danger' {
+  if (variant === 'gradient') return 'primary';
+  return variant as 'primary' | 'secondary' | 'outline' | 'ghost' | 'success' | 'danger';
+}
+
+function getBackgroundStyleKey(
+  variant: string,
+): 'primary' | 'secondary' | 'outline' | 'ghost' | 'success' | 'danger' {
+  if (variant === 'gradient') return 'primary';
+  return variant as 'primary' | 'secondary' | 'outline' | 'ghost' | 'success' | 'danger';
 }
 
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
+  gradient: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.lg,
+    width: '100%',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullWidth: {
+    width: '100%',
   },
   primary: {
     backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
   },
   secondary: {
     backgroundColor: colors.secondary,
+    paddingHorizontal: spacing.lg,
   },
   outline: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.primary,
+    paddingHorizontal: spacing.lg,
   },
   ghost: {
     backgroundColor: 'transparent',
+    paddingHorizontal: spacing.md,
   },
   success: {
     backgroundColor: colors.success,
+    paddingHorizontal: spacing.lg,
   },
   danger: {
     backgroundColor: colors.error,
-  },
-  size_sm: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  size_md: {
-    paddingVertical: spacing.md - 2,
     paddingHorizontal: spacing.lg,
-  },
-  size_lg: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
   },
   disabled: {
     opacity: 0.5,
@@ -136,15 +249,22 @@ const styles = StyleSheet.create({
     color: colors.textInverse,
   },
   textSize_sm: {
-    fontSize: 14,
+    ...typography.buttonSmall,
   },
   textSize_md: {
     fontSize: 16,
   },
   textSize_lg: {
     fontSize: 18,
+    fontWeight: '600',
   },
   textDisabled: {
     color: colors.textLight,
+  },
+  iconLeft: {
+    marginRight: spacing.sm,
+  },
+  iconRight: {
+    marginLeft: spacing.sm,
   },
 });

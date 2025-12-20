@@ -5,6 +5,7 @@ export interface UpdateProfileRequest {
   firstName?: string;
   lastName?: string;
   displayName?: string;
+  photoUrl?: string;
   bio?: string;
   phone?: string;
 }

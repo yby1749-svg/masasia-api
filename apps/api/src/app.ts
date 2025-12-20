@@ -22,6 +22,7 @@ import adminRoutes from './routes/admin.routes.js';
 import serviceRoutes from './routes/services.routes.js';
 import shopRoutes from './routes/shops.routes.js';
 import walletRoutes from './routes/wallet.routes.js';
+import chatRoutes from './routes/chat.routes.js';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -44,8 +45,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Rate limiting (disabled in test environment)
-if (process.env.NODE_ENV !== 'test') {
+// Rate limiting (disabled in test/development environment)
+if (process.env.NODE_ENV === 'production') {
   const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
@@ -111,6 +112,7 @@ app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/services`, serviceRoutes);
 app.use(`${API_PREFIX}/shops`, shopRoutes);
 app.use(`${API_PREFIX}/wallet`, walletRoutes);
+app.use(`${API_PREFIX}/chat`, chatRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 
 // ============================================================================

@@ -4,6 +4,7 @@ import type {Booking, BookingStatus} from '@types';
 
 interface JobState {
   pendingJobs: Booking[];
+  declinedJobIds: string[];
   activeJob: Booking | null;
   todayJobs: Booking[];
   isLoading: boolean;
@@ -11,7 +12,7 @@ interface JobState {
 
   fetchPendingJobs: () => Promise<void>;
   fetchTodayJobs: () => Promise<void>;
-  acceptJob: (bookingId: string) => Promise<void>;
+  acceptJob: (bookingId: string) => Promise<Booking>;
   rejectJob: (bookingId: string, reason?: string) => Promise<void>;
   updateJobStatus: (bookingId: string, status: BookingStatus) => Promise<void>;
   setActiveJob: (job: Booking | null) => void;
@@ -20,6 +21,7 @@ interface JobState {
 
 export const useJobStore = create<JobState>((set, get) => ({
   pendingJobs: [],
+  declinedJobIds: [],
   activeJob: null,
   todayJobs: [],
   isLoading: false,
@@ -73,6 +75,8 @@ export const useJobStore = create<JobState>((set, get) => ({
         todayJobs: [...state.todayJobs, acceptedJob],
         isLoading: false,
       }));
+
+      return acceptedJob;
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Failed to accept job';
@@ -86,11 +90,19 @@ export const useJobStore = create<JobState>((set, get) => ({
     try {
       await bookingsApi.rejectBooking(bookingId, reason);
 
-      // Remove from pending
+      // Add to declined list (don't remove from pending yet - show as declined)
       set(state => ({
-        pendingJobs: state.pendingJobs.filter(job => job.id !== bookingId),
+        declinedJobIds: [...state.declinedJobIds, bookingId],
         isLoading: false,
       }));
+
+      // Remove from pending after 2 seconds
+      setTimeout(() => {
+        set(state => ({
+          pendingJobs: state.pendingJobs.filter(job => job.id !== bookingId),
+          declinedJobIds: state.declinedJobIds.filter(id => id !== bookingId),
+        }));
+      }, 2000);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Failed to reject job';

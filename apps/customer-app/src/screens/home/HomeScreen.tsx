@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Dimensions,
+  Image,
+  ImageBackground,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useQuery} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 
 import {servicesApi, providersApi} from '@api';
 import {useAuthStore, useLocationStore} from '@store';
@@ -21,11 +25,14 @@ import {
   spacing,
   borderRadius,
   shadows,
+  gradients,
 } from '@config/theme';
+import {getServiceImageByName} from '../../assets/images/services';
 import type {HomeStackParamList} from '@navigation';
 import type {Service, Provider} from '@types';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Home'>;
+const {width} = Dimensions.get('window');
 
 export function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -77,55 +84,128 @@ export function HomeScreen() {
     await Promise.all([refetchServices(), refetchProviders()]);
   };
 
+  const getServiceIcon = (serviceName: string) => {
+    const name = serviceName.toLowerCase();
+    if (name.includes('thai')) return 'body-outline';
+    if (name.includes('swedish')) return 'leaf-outline';
+    if (name.includes('deep')) return 'fitness-outline';
+    if (name.includes('hot stone')) return 'flame-outline';
+    if (name.includes('aromatherapy')) return 'flower-outline';
+    if (name.includes('foot') || name.includes('reflexology')) return 'footsteps-outline';
+    return 'hand-left-outline';
+  };
+
+  // Image loading state for fallback
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleImageError = (serviceId: string) => {
+    setImageErrors(prev => ({...prev, [serviceId]: true}));
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
-        }>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>
-              Hello, {user?.firstName || 'there'}!
-            </Text>
-            <Text style={styles.subtitle}>Book a massage today</Text>
+    <View style={styles.container}>
+      {/* Hero Header with Gradient */}
+      <LinearGradient
+        colors={gradients.hero as [string, string, string]}
+        style={styles.heroGradient}>
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <Text style={styles.greeting}>
+                Hello, {user?.firstName || 'there'}!
+              </Text>
+              <Text style={styles.subtitle}>
+                Ready for a relaxing massage?
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.notificationButton}>
+              <View style={styles.notificationBadge}>
+                <Icon name="notifications" size={22} color={colors.text} />
+              </View>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Icon name="notifications-outline" size={24} color={colors.text} />
+
+          {/* Search Bar */}
+          <TouchableOpacity
+            style={styles.searchBar}
+            onPress={() => navigation.navigate('ProviderList', {})}>
+            <Icon name="search" size={22} color={colors.primary} />
+            <Text style={styles.searchPlaceholder}>
+              Find your perfect therapist...
+            </Text>
+            <View style={styles.searchFilter}>
+              <Icon name="options-outline" size={18} color={colors.textSecondary} />
+            </View>
           </TouchableOpacity>
-        </View>
+        </SafeAreaView>
+      </LinearGradient>
 
-        {/* Search Bar */}
-        <TouchableOpacity
-          style={styles.searchBar}
-          onPress={() => navigation.navigate('ProviderList', {})}>
-          <Icon name="search-outline" size={20} color={colors.textLight} />
-          <Text style={styles.searchPlaceholder}>Search providers...</Text>
-        </TouchableOpacity>
-
-        {/* Services */}
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }>
+        {/* Services Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Services</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Our Services</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAll}>View All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.servicesScroll}>
             {services?.map((service: Service) => (
               <TouchableOpacity
                 key={service.id}
                 style={styles.serviceCard}
+                activeOpacity={0.9}
                 onPress={() =>
                   navigation.navigate('ProviderList', {serviceId: service.id})
                 }>
-                <View style={styles.serviceIcon}>
-                  <Icon
-                    name="hand-left-outline"
-                    size={24}
-                    color={colors.primary}
+                <View style={styles.serviceImageContainer}>
+                  {!imageErrors[service.id] ? (
+                    <Image
+                      source={{uri: getServiceImageByName(service.name)}}
+                      style={styles.serviceImage}
+                      onError={() => handleImageError(service.id)}
+                    />
+                  ) : (
+                    <LinearGradient
+                      colors={[colors.primarySoft, colors.surface]}
+                      style={styles.serviceImageFallback}>
+                      <Icon
+                        name={getServiceIcon(service.name)}
+                        size={32}
+                        color={colors.primary}
+                      />
+                    </LinearGradient>
+                  )}
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.6)']}
+                    style={styles.serviceImageOverlay}
                   />
+                  <View style={styles.servicePriceBadge}>
+                    <Text style={styles.servicePriceBadgeText}>
+                      ₱{service.basePrice90}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.serviceName}>{service.name}</Text>
-                <Text style={styles.servicePrice}>
-                  From ₱{service.basePrice60}
-                </Text>
+                <View style={styles.serviceCardContent}>
+                  <Text style={styles.serviceName} numberOfLines={2}>
+                    {service.name}
+                  </Text>
+                  <Text style={styles.serviceDescription} numberOfLines={1}>
+                    90 min session
+                  </Text>
+                </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -134,7 +214,7 @@ export function HomeScreen() {
         {/* Featured Providers */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Featured Providers</Text>
+            <Text style={styles.sectionTitle}>Top Therapists</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('ProviderList', {})}>
               <Text style={styles.seeAll}>See All</Text>
@@ -144,30 +224,54 @@ export function HomeScreen() {
             <TouchableOpacity
               key={provider.id}
               style={styles.providerCard}
+              activeOpacity={0.9}
               onPress={() =>
                 navigation.navigate('ProviderDetail', {providerId: provider.id})
               }>
-              <View style={styles.providerAvatar}>
-                <Icon name="person" size={32} color={colors.textLight} />
-              </View>
+              {provider.photoUrl ? (
+                <Image
+                  source={{uri: provider.photoUrl}}
+                  style={styles.providerAvatarImage}
+                />
+              ) : (
+                <View style={styles.providerAvatar}>
+                  <Icon name="person" size={28} color={colors.primary} />
+                </View>
+              )}
               <View style={styles.providerInfo}>
                 <Text style={styles.providerName}>{provider.displayName}</Text>
                 <View style={styles.providerMeta}>
-                  <Icon name="star" size={14} color={colors.warning} />
-                  <Text style={styles.providerRating}>
-                    {provider.rating.toFixed(1)}
-                  </Text>
+                  <View style={styles.ratingBadge}>
+                    <Icon name="star" size={12} color={colors.primary} />
+                    <Text style={styles.providerRating}>
+                      {provider.rating.toFixed(1)}
+                    </Text>
+                  </View>
                   <Text style={styles.providerReviews}>
-                    ({provider.totalReviews} reviews)
+                    {provider.totalReviews} reviews
                   </Text>
                 </View>
+                {(provider as any).services && (provider as any).services.length > 0 && (
+                  <Text style={styles.providerServices} numberOfLines={1}>
+                    {(provider as any).services
+                      .slice(0, 2)
+                      .map((s: {service?: {name?: string}}) => s.service?.name)
+                      .filter(Boolean)
+                      .join(' • ')}
+                  </Text>
+                )}
               </View>
-              <Icon name="chevron-forward" size={20} color={colors.textLight} />
+              <View style={styles.arrowButton}>
+                <Icon name="chevron-forward" size={20} color={colors.primary} />
+              </View>
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Bottom Spacer */}
+        <View style={{height: spacing.xxl}} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -176,16 +280,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  heroGradient: {
+    paddingBottom: spacing.lg,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  headerContent: {
+    flex: 1,
   },
   greeting: {
     ...typography.h2,
     color: colors.text,
+    letterSpacing: -0.5,
   },
   subtitle: {
     ...typography.body,
@@ -193,21 +305,45 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   notificationButton: {
-    padding: spacing.sm,
+    marginLeft: spacing.md,
+  },
+  notificationBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.sm,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     marginHorizontal: spacing.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: borderRadius.md,
+    marginTop: spacing.sm,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
     gap: spacing.sm,
+    ...shadows.md,
   },
   searchPlaceholder: {
+    flex: 1,
     ...typography.body,
     color: colors.textLight,
+  },
+  searchFilter: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
+    flex: 1,
   },
   section: {
     marginTop: spacing.lg,
@@ -222,56 +358,94 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.h3,
     color: colors.text,
-    marginBottom: spacing.md,
   },
   seeAll: {
     ...typography.bodySmall,
+    fontWeight: '600',
     color: colors.primary,
-    marginBottom: spacing.md,
+  },
+  servicesScroll: {
+    paddingRight: spacing.lg,
   },
   serviceCard: {
     backgroundColor: colors.card,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     marginRight: spacing.md,
-    width: 120,
-    ...shadows.sm,
+    width: 160,
+    overflow: 'hidden',
+    ...shadows.card,
   },
-  serviceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primaryLight + '20',
+  serviceImageContainer: {
+    width: '100%',
+    height: 120,
+    position: 'relative',
+  },
+  serviceImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  serviceImageFallback: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+  },
+  serviceImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+  },
+  servicePriceBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  servicePriceBadgeText: {
+    ...typography.caption,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  serviceCardContent: {
+    padding: spacing.md,
   },
   serviceName: {
     ...typography.bodySmall,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: 4,
   },
-  servicePrice: {
+  serviceDescription: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   providerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
     padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.sm,
-    ...shadows.sm,
+    borderRadius: borderRadius.xl,
+    marginBottom: spacing.md,
+    ...shadows.card,
   },
   providerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
+    width: 60,
+    height: 60,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primarySoft,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  providerAvatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: borderRadius.xl,
   },
   providerInfo: {
     flex: 1,
@@ -286,15 +460,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: spacing.xs,
-    gap: spacing.xs,
+    gap: spacing.sm,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+    gap: 4,
   },
   providerRating: {
-    ...typography.bodySmall,
-    fontWeight: '600',
-    color: colors.text,
+    ...typography.caption,
+    fontWeight: '700',
+    color: colors.primaryDark,
   },
   providerReviews: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+  providerServices: {
+    ...typography.caption,
+    color: colors.textLight,
+    marginTop: spacing.xs,
+  },
+  arrowButton: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -29,7 +29,11 @@ const config = {
       // Block any .expo folders
       /.*\/.expo\/.*/,
     ]),
-    disableHierarchicalLookup: true,
+    // Fix Firebase modular imports in monorepo
+    extraNodeModules: {
+      '@react-native-firebase/app': path.resolve(monorepoRoot, 'node_modules/@react-native-firebase/app'),
+      '@react-native-firebase/messaging': path.resolve(monorepoRoot, 'node_modules/@react-native-firebase/messaging'),
+    },
   },
 };
 

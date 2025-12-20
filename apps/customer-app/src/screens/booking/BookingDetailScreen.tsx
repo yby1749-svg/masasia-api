@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  TouchableOpacity,
+  Linking,
 } from 'react-native';
 import {useRoute, useNavigation, useFocusEffect, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -136,6 +138,23 @@ export function BookingDetailScreen() {
     booking.payment?.status !== 'PAID' &&
     booking.payment?.method !== 'CASH';
   const canTrack = ['PROVIDER_EN_ROUTE', 'PROVIDER_ARRIVED'].includes(booking.status);
+  const canContact = ['ACCEPTED', 'PROVIDER_EN_ROUTE', 'PROVIDER_ARRIVED', 'IN_PROGRESS'].includes(booking.status) && booking.provider;
+
+  const handleCallProvider = () => {
+    const phone = (booking.provider as any)?.user?.phone || (booking.provider as any)?.phone;
+    if (phone) {
+      Linking.openURL(`tel:${phone}`);
+    } else {
+      Alert.alert('Phone Not Available', 'Provider phone number is not available.');
+    }
+  };
+
+  const handleChatProvider = () => {
+    navigation.navigate('Chat', {
+      bookingId: booking.id,
+      providerName: booking.provider?.displayName,
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -261,6 +280,20 @@ export function BookingDetailScreen() {
                   </Text>
                 </View>
               </View>
+              {canContact && (
+                <View style={styles.contactButtons}>
+                  <TouchableOpacity
+                    style={styles.contactButton}
+                    onPress={handleChatProvider}>
+                    <Icon name="chatbubble" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.contactButton, styles.callContactButton]}
+                    onPress={handleCallProvider}>
+                    <Icon name="call" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -428,6 +461,22 @@ const styles = StyleSheet.create({
   },
   providerInfo: {
     marginLeft: spacing.md,
+    flex: 1,
+  },
+  contactButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  contactButton: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  callContactButton: {
+    backgroundColor: colors.primary,
   },
   providerName: {
     ...typography.body,

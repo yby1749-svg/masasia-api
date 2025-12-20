@@ -64,6 +64,9 @@ export function AddressSelectionStep() {
             value={location}
             onChangeText={setLocation}
             onBlur={handleUseLocation}
+            autoCorrect={false}
+            spellCheck={false}
+            autoCapitalize="words"
           />
 
           <TextInput
@@ -77,6 +80,8 @@ export function AddressSelectionStep() {
             onBlur={handleUseLocation}
             multiline
             numberOfLines={2}
+            autoCorrect={false}
+            spellCheck={false}
           />
 
           <Text style={styles.hint}>

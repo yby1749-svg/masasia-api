@@ -13,6 +13,7 @@ import {PaymentWebViewScreen} from '@screens/booking/PaymentWebViewScreen';
 import {PaymentCallbackScreen} from '@screens/booking/PaymentCallbackScreen';
 import {WriteReviewScreen} from '@screens/booking/WriteReviewScreen';
 import {TrackProviderScreen} from '@screens/booking/TrackProviderScreen';
+import {ChatScreen} from '@screens/booking/ChatScreen';
 import {InboxScreen} from '@screens/inbox/InboxScreen';
 import {ProfileScreen} from '@screens/profile/ProfileScreen';
 import {EditProfileScreen} from '@screens/profile/EditProfileScreen';
@@ -41,6 +42,7 @@ export type BookingsStackParamList = {
   BookingDetail: {bookingId: string};
   TrackProvider: {bookingId: string};
   WriteReview: {bookingId: string; providerId: string};
+  Chat: {bookingId: string; providerName?: string};
 };
 
 export type ProfileStackParamList = {
@@ -116,6 +118,11 @@ function BookingsStackNavigator() {
         name="WriteReview"
         component={WriteReviewScreen}
         options={{title: 'Write Review'}}
+      />
+      <BookingsStack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{title: 'Chat'}}
       />
     </BookingsStack.Navigator>
   );

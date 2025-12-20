@@ -1,15 +1,23 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Image,
+  Dimensions,
+  Platform,
+  Linking,
+  TouchableOpacity,
+  Modal,
+  StatusBar,
 } from 'react-native';
 import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useQuery} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
+import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 
 import {providersApi} from '@api';
 import {Button} from '@components';
@@ -23,6 +31,9 @@ import {
 import type {HomeStackParamList} from '@navigation';
 import type {ProviderService, Review} from '@types';
 
+const {width} = Dimensions.get('window');
+const MAP_HEIGHT = 180;
+
 type RouteProps = RouteProp<HomeStackParamList, 'ProviderDetail'>;
 type NavigationProps = NativeStackNavigationProp<HomeStackParamList, 'ProviderDetail'>;
 
@@ -30,6 +41,7 @@ export function ProviderDetailScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProps>();
   const {providerId} = route.params;
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const {data: provider, isLoading} = useQuery({
     queryKey: ['provider', providerId],
@@ -65,12 +77,58 @@ export function ProviderDetailScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Photo Fullscreen Modal */}
+      <Modal
+        visible={showPhotoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPhotoModal(false)}>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalCloseButton}
+            onPress={() => setShowPhotoModal(false)}>
+            <Icon name="close" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+          {provider.photoUrl && (
+            <Image
+              source={{uri: provider.photoUrl}}
+              style={styles.modalImage}
+              resizeMode="contain"
+            />
+          )}
+          <View style={styles.modalInfo}>
+            <Text style={styles.modalName}>{provider.displayName}</Text>
+            <View style={styles.modalRating}>
+              <Icon name="star" size={16} color={colors.warning} />
+              <Text style={styles.modalRatingText}>
+                {provider.rating.toFixed(1)} ({provider.totalReviews} reviews)
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Icon name="person" size={48} color={colors.textLight} />
-          </View>
+          {provider.photoUrl ? (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => setShowPhotoModal(true)}>
+              <Image
+                source={{uri: provider.photoUrl}}
+                style={styles.avatarImage}
+              />
+              <View style={styles.zoomBadge}>
+                <Icon name="expand-outline" size={14} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.avatar}>
+              <Icon name="person" size={48} color={colors.textLight} />
+            </View>
+          )}
           <Text style={styles.name}>{provider.displayName}</Text>
           <View style={styles.ratingContainer}>
             <Icon name="star" size={18} color={colors.warning} />
@@ -81,6 +139,57 @@ export function ProviderDetailScreen() {
           </View>
           {provider.bio && <Text style={styles.bio}>{provider.bio}</Text>}
         </View>
+
+        {/* Location Map */}
+        {provider.lastLatitude && provider.lastLongitude && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                initialRegion={{
+                  latitude: provider.lastLatitude,
+                  longitude: provider.lastLongitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                pitchEnabled={false}
+                rotateEnabled={false}>
+                <Marker
+                  coordinate={{
+                    latitude: provider.lastLatitude,
+                    longitude: provider.lastLongitude,
+                  }}
+                  title={provider.displayName}
+                  description="Therapist location">
+                  <View style={styles.markerContainer}>
+                    <View style={styles.marker}>
+                      <Icon name="person" size={16} color="#FFFFFF" />
+                    </View>
+                  </View>
+                </Marker>
+              </MapView>
+              <TouchableOpacity
+                style={styles.directionsButton}
+                onPress={() => {
+                  const lat = provider.lastLatitude!;
+                  const lng = provider.lastLongitude!;
+                  const scheme = Platform.OS === 'ios' ? 'maps:' : 'geo:';
+                  const url =
+                    Platform.OS === 'ios'
+                      ? `${scheme}?daddr=${lat},${lng}`
+                      : `${scheme}${lat},${lng}?q=${lat},${lng}`;
+                  Linking.openURL(url);
+                }}>
+                <Icon name="navigate" size={18} color={colors.primary} />
+                <Text style={styles.directionsText}>Get Directions</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Services */}
         <View style={styles.section}>
@@ -168,6 +277,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: borderRadius.full,
     marginBottom: spacing.md,
   },
   name: {
@@ -276,5 +391,96 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
+  },
+  mapContainer: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    ...shadows.sm,
+  },
+  map: {
+    width: '100%',
+    height: MAP_HEIGHT,
+  },
+  markerContainer: {
+    alignItems: 'center',
+  },
+  marker: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    ...shadows.md,
+  },
+  directionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    padding: spacing.md,
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  directionsText: {
+    ...typography.bodySmall,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  zoomBadge: {
+    position: 'absolute',
+    bottom: spacing.md + 4,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  modalImage: {
+    width: width - 40,
+    height: width - 40,
+    borderRadius: borderRadius.xl,
+  },
+  modalInfo: {
+    position: 'absolute',
+    bottom: 80,
+    alignItems: 'center',
+  },
+  modalName: {
+    ...typography.h2,
+    color: '#FFFFFF',
+    marginBottom: spacing.sm,
+  },
+  modalRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  modalRatingText: {
+    ...typography.body,
+    color: '#FFFFFF',
   },
 });

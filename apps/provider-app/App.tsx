@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import {StatusBar} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -8,14 +8,14 @@ import Toast from 'react-native-toast-message';
 import {RootNavigator} from './src/navigation';
 import {toastConfig} from './src/config/toast';
 import {useAuthStore} from './src/store';
-import {
-  registerForPushNotifications,
-  initializePushNotifications,
-  setupBackgroundMessageHandler,
-} from './src/services';
 
-// Initialize background message handler (must be called outside component)
-setupBackgroundMessageHandler();
+// Firebase push notifications - uncomment after configuring Firebase
+// import {
+//   registerForPushNotifications,
+//   initializePushNotifications,
+//   setupBackgroundMessageHandler,
+// } from './src/services';
+// setupBackgroundMessageHandler();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,18 +27,19 @@ const queryClient = new QueryClient({
 });
 
 function AppContent(): React.JSX.Element {
-  const {isAuthenticated} = useAuthStore();
+  const {isAuthenticated: _isAuthenticated} = useAuthStore();
 
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    if (isAuthenticated) {
-      registerForPushNotifications();
-      cleanup = initializePushNotifications();
-    }
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [isAuthenticated]);
+  // Firebase push notifications - uncomment after configuring Firebase
+  // useEffect(() => {
+  //   let cleanup: (() => void) | undefined;
+  //   if (isAuthenticated) {
+  //     registerForPushNotifications();
+  //     cleanup = initializePushNotifications();
+  //   }
+  //   return () => {
+  //     if (cleanup) cleanup();
+  //   };
+  // }, [isAuthenticated]);
 
   return <RootNavigator />;
 }

@@ -3,6 +3,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {JobDashboardScreen} from '@screens/dashboard/JobDashboardScreen';
 import {JobDetailScreen} from '@screens/dashboard/JobDetailScreen';
 import {NavigationScreen} from '@screens/dashboard/NavigationScreen';
+import {ChatScreen} from '@screens/dashboard/ChatScreen';
 import type {DashboardStackParamList} from '@types';
 import {colors} from '@config/theme';
 
@@ -32,6 +33,11 @@ export function DashboardNavigator() {
         name="Navigation"
         component={NavigationScreen}
         options={{title: 'Navigate to Customer'}}
+      />
+      <Stack.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{title: 'Chat'}}
       />
     </Stack.Navigator>
   );

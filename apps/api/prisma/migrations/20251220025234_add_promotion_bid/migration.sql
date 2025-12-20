@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Provider" ADD COLUMN     "promotionBid" DOUBLE PRECISION NOT NULL DEFAULT 0;

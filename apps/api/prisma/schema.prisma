@@ -284,6 +284,7 @@ model Provider {
   
   // 프로필
   displayName         String
+  photoUrl            String?
   bio                 String?
   yearsOfExperience   Int                  @default(0)
   
@@ -316,6 +317,9 @@ model Provider {
   // 정산 잔액
   balance             Float                @default(0)
   totalEarnings       Float                @default(0)
+
+  // 프로모션 입찰 (노출 우선순위)
+  promotionBid        Float                @default(0) // 높을수록 상위 노출
   
   // 심사 관련
   approvedAt          DateTime?
@@ -969,6 +973,26 @@ enum WalletTransactionType {
   EARNING             // 수익 입금
   REFUND              // 환불
   ADJUSTMENT          // 관리자 조정
+}
+
+// ----------------------------------------------------------------------------
+// Message - 인앱 채팅 메시지
+// ----------------------------------------------------------------------------
+model Message {
+  id          String   @id @default(cuid())
+
+  bookingId   String
+  senderId    String
+
+  content     String
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([senderId])
+  @@index([createdAt])
 }
 
 enum WalletOwnerType {

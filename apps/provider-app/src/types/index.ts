@@ -15,6 +15,7 @@ export interface Provider {
   id: string;
   userId: string;
   displayName: string;
+  photoUrl?: string;
   bio?: string;
   rating: number;
   totalReviews: number;
@@ -22,6 +23,7 @@ export interface Provider {
   isVerified: boolean;
   latitude?: number;
   longitude?: number;
+  promotionBid?: number;
   services?: ProviderService[];
   user?: User;
   createdAt: string;
@@ -243,6 +245,7 @@ export type DashboardStackParamList = {
   JobDashboard: undefined;
   JobDetail: {bookingId: string};
   Navigation: {bookingId: string; destination: {lat: number; lng: number}};
+  Chat: {bookingId: string; customerName?: string};
 };
 
 export type ScheduleStackParamList = {
@@ -261,6 +264,7 @@ export type EarningsStackParamList = {
 export type ProfileStackParamList = {
   Profile: undefined;
   EditProfile: undefined;
+  Promotion: undefined;
   Services: undefined;
   Settings: undefined;
   Notifications: undefined;

@@ -40,10 +40,14 @@ export interface Provider {
   id: string;
   userId: string;
   displayName: string;
+  photoUrl?: string;
   bio?: string;
   rating: number;
   totalReviews: number;
   completedBookings: number;
+  lastLatitude?: number;
+  lastLongitude?: number;
+  promotionBid?: number;
   user: {
     firstName: string;
     lastName: string;
@@ -58,6 +62,8 @@ export interface Provider {
 export interface ProviderDetail extends Provider {
   services: ProviderService[];
   serviceAreas: string[];
+  lastLatitude?: number;
+  lastLongitude?: number;
 }
 
 export interface Service {
@@ -129,13 +135,13 @@ export interface Booking {
 export interface BookingRequest {
   providerId: string;
   serviceId: string;
-  scheduledDate: string;
-  scheduledTime: string;
   duration: 90 | 120;
-  address: string;
+  scheduledAt: string;
+  addressText: string;
   latitude: number;
   longitude: number;
-  notes?: string;
+  customerNotes?: string;
+  paymentMethod: PaymentMethodType;
 }
 
 export type BookingStatus =

@@ -9,6 +9,7 @@ export {notificationsApi} from './notifications';
 export {reviewsApi} from './reviews';
 export {blockedDatesApi} from './blocked-dates';
 export {walletApi} from './wallet';
+export {chatApi} from './chat';
 export type {
   Shop,
   ShopInvitation,
@@ -21,3 +22,4 @@ export type {NotificationItem} from './notifications';
 export type {ReviewsResponse} from './reviews';
 export type {BlockedDate} from './blocked-dates';
 export type {WalletBalance, WalletTransaction, TopUpData, FeeCheckResult} from './wallet';
+export type {Message} from './chat';

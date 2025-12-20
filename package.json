@@ -22,5 +22,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "react-native-linear-gradient": "^2.8.3"
   }
 }

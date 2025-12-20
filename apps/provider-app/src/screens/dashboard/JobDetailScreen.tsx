@@ -177,6 +177,16 @@ export function JobDetailScreen() {
     }
   };
 
+  const chatCustomer = () => {
+    const customerName = booking?.customer
+      ? `${booking.customer.firstName} ${booking.customer.lastName}`
+      : undefined;
+    navigation.navigate('Chat', {
+      bookingId,
+      customerName,
+    });
+  };
+
   if (!booking) {
     return null;
   }
@@ -265,12 +275,19 @@ export function JobDetailScreen() {
                 </Text>
               )}
             </View>
-            {booking.customer?.phone && booking.status !== 'PENDING' && (
-              <TouchableOpacity
-                style={styles.callButton}
-                onPress={callCustomer}>
-                <Icon name="call" size={20} color={colors.primary} />
-              </TouchableOpacity>
+            {booking.customer?.phone && booking.status !== 'PENDING' && booking.status !== 'COMPLETED' && (
+              <View style={styles.contactButtons}>
+                <TouchableOpacity
+                  style={styles.chatButton}
+                  onPress={chatCustomer}>
+                  <Icon name="chatbubble" size={20} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.callButton}
+                  onPress={callCustomer}>
+                  <Icon name="call" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </Card>
@@ -494,11 +511,23 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
   },
-  callButton: {
+  contactButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  chatButton: {
     width: 40,
     height: 40,
     borderRadius: borderRadius.full,
     backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  callButton: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

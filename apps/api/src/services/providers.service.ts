@@ -47,17 +47,26 @@ class ProviderService {
       include: {
         user: { select: { firstName: true, lastName: true, avatarUrl: true, gender: true } },
         shop: { select: { id: true, name: true, status: true } },
+        services: { include: { service: true } },
       },
+      // Sort by promotionBid (higher = top), then by rating (higher = top)
+      orderBy: [
+        { promotionBid: 'desc' },
+        { rating: 'desc' },
+      ],
       take: parseInt(query.limit || '20'),
       skip: ((parseInt(query.page || '1')) - 1) * (parseInt(query.limit || '20')),
     });
 
     // Transform to include providerType
-    const data = providers.map(p => ({
-      ...p,
-      providerType: p.shopId && p.shop?.status === 'APPROVED' ? 'shop' : 'independent',
-      shopName: p.shop?.status === 'APPROVED' ? p.shop.name : null,
-    }));
+    const data = providers.map(p => {
+      const shop = p.shop as { id: string; name: string; status: string } | null;
+      return {
+        ...p,
+        providerType: p.shopId && shop?.status === 'APPROVED' ? 'shop' : 'independent',
+        shopName: shop?.status === 'APPROVED' ? shop.name : null,
+      };
+    });
 
     return { data, pagination: { page: 1, limit: 20, total: providers.length } };
   }

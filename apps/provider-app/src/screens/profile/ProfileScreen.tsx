@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -25,6 +26,17 @@ export function ProfileScreen() {
   const {provider, logout} = useAuthStore();
 
   const menuItems = [
+    {
+      icon: 'person-outline',
+      label: 'Edit Profile',
+      screen: 'EditProfile' as const,
+    },
+    {
+      icon: 'trending-up-outline',
+      label: 'Boost Visibility',
+      screen: 'Promotion' as const,
+      badge: provider?.promotionBid && provider.promotionBid > 0 ? `₱${provider.promotionBid}/day` : null,
+    },
     {
       icon: 'storefront-outline',
       label: 'My Shop',
@@ -60,9 +72,16 @@ export function ProfileScreen() {
     <ScrollView style={styles.container}>
       {/* Profile Header */}
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Icon name="person" size={48} color={colors.textLight} />
-        </View>
+        {provider?.photoUrl ? (
+          <Image
+            source={{uri: provider.photoUrl}}
+            style={styles.avatarImage}
+          />
+        ) : (
+          <View style={styles.avatar}>
+            <Icon name="person" size={48} color={colors.textLight} />
+          </View>
+        )}
         <Text style={styles.name}>{provider?.displayName}</Text>
         <View style={styles.ratingContainer}>
           <Icon name="star" size={18} color={colors.warning} />
@@ -124,6 +143,11 @@ export function ProfileScreen() {
             <Card style={styles.menuItem}>
               <Icon name={item.icon} size={24} color={colors.primary} />
               <Text style={styles.menuLabel}>{item.label}</Text>
+              {(item as any).badge && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{(item as any).badge}</Text>
+                </View>
+              )}
               <Icon name="chevron-forward" size={20} color={colors.textLight} />
             </Card>
           </TouchableOpacity>
@@ -159,6 +183,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: borderRadius.full,
     marginBottom: spacing.md,
   },
   name: {
@@ -256,5 +286,16 @@ const styles = StyleSheet.create({
   },
   logoutLabel: {
     color: colors.error,
+  },
+  badge: {
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  badgeText: {
+    ...typography.caption,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });

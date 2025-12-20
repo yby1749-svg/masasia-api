@@ -1,6 +1,8 @@
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {ProfileScreen} from '@screens/profile/ProfileScreen';
+import {EditProfileScreen} from '@screens/profile/EditProfileScreen';
+import {PromotionScreen} from '@screens/profile/PromotionScreen';
 import {ServicesScreen} from '@screens/profile/ServicesScreen';
 import {SettingsScreen} from '@screens/profile/SettingsScreen';
 import {NotificationsScreen} from '@screens/notifications';
@@ -25,6 +27,16 @@ export function ProfileNavigator() {
         name="Profile"
         component={ProfileScreen}
         options={{title: 'Profile'}}
+      />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{title: 'Edit Profile'}}
+      />
+      <Stack.Screen
+        name="Promotion"
+        component={PromotionScreen}
+        options={{title: 'Boost Visibility'}}
       />
       <Stack.Screen
         name="Services"

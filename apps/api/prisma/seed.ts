@@ -259,10 +259,18 @@ async function main() {
     update: {
       balance: 4600, // Available for payout (92% of completed bookings)
       totalEarnings: 4600,
+      photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face',
+      // Location: Makati CBD area
+      lastLatitude: 14.5547,
+      lastLongitude: 121.0244,
+      lastLocationAt: new Date(),
+      // Promotion bid: High bid for top visibility
+      promotionBid: 200,
     },
     create: {
       userId: providerUser.id,
       displayName: 'Maria S.',
+      photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face',
       bio: 'Certified massage therapist with 5 years of experience. Specializing in Thai and Swedish massage.',
       yearsOfExperience: 5,
       status: 'APPROVED',
@@ -276,6 +284,12 @@ async function main() {
       approvedAt: new Date(),
       balance: 4600, // Available for payout (92% of completed bookings)
       totalEarnings: 4600,
+      // Location: Makati CBD area
+      lastLatitude: 14.5547,
+      lastLongitude: 121.0244,
+      lastLocationAt: new Date(),
+      // Promotion bid: High bid for top visibility
+      promotionBid: 200,
     },
   });
 
@@ -417,17 +431,45 @@ async function main() {
   // SHOP THERAPISTS (10 therapists with KPI data)
   // =========================================================================
 
+  // Sample therapist photos (professional headshots from Unsplash)
+  const therapistPhotos = [
+    'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop&crop=face', // Anna
+    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop&crop=face', // Bella
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face', // Carmen
+    'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop&crop=face', // Diana
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face', // Elena
+    'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&h=400&fit=crop&crop=face', // Faith
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face', // Grace
+    'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=400&h=400&fit=crop&crop=face', // Hannah
+    'https://images.unsplash.com/photo-1548142813-c348350df52b?w=400&h=400&fit=crop&crop=face', // Isabel
+    'https://images.unsplash.com/photo-1557862921-37829c790f19?w=400&h=400&fit=crop&crop=face', // Julia
+  ];
+
+  // Therapist locations around Metro Manila
+  const therapistLocations = [
+    { lat: 14.5505, lng: 121.0455 }, // BGC
+    { lat: 14.5567, lng: 121.0234 }, // Makati Salcedo
+    { lat: 14.5351, lng: 120.9831 }, // Pasay MOA
+    { lat: 14.5876, lng: 121.0614 }, // Ortigas
+    { lat: 14.5495, lng: 121.0508 }, // BGC High Street
+    { lat: 14.5615, lng: 121.0170 }, // Makati Legaspi
+    { lat: 14.5547, lng: 121.0244 }, // Makati CBD
+    { lat: 14.5430, lng: 121.0510 }, // BGC Market Market
+    { lat: 14.5580, lng: 121.0200 }, // Makati Ayala
+    { lat: 14.5660, lng: 121.0300 }, // Makati Rockwell
+  ];
+
   const therapistData = [
-    { firstName: 'Anna', lastName: 'Santos', rating: 4.9, bookings: 87, earnings: 78300, thisMonth: 12500 },
-    { firstName: 'Bella', lastName: 'Cruz', rating: 4.7, bookings: 65, earnings: 58500, thisMonth: 9800 },
-    { firstName: 'Carmen', lastName: 'Reyes', rating: 4.8, bookings: 72, earnings: 64800, thisMonth: 11200 },
-    { firstName: 'Diana', lastName: 'Garcia', rating: 4.6, bookings: 45, earnings: 40500, thisMonth: 7500 },
-    { firstName: 'Elena', lastName: 'Lopez', rating: 4.5, bookings: 38, earnings: 34200, thisMonth: 6200 },
-    { firstName: 'Faith', lastName: 'Mendoza', rating: 4.9, bookings: 92, earnings: 82800, thisMonth: 14500 },
-    { firstName: 'Grace', lastName: 'Torres', rating: 4.4, bookings: 28, earnings: 25200, thisMonth: 4800 },
-    { firstName: 'Hannah', lastName: 'Flores', rating: 4.7, bookings: 56, earnings: 50400, thisMonth: 8900 },
-    { firstName: 'Isabel', lastName: 'Rivera', rating: 4.8, bookings: 68, earnings: 61200, thisMonth: 10500 },
-    { firstName: 'Julia', lastName: 'Dela Cruz', rating: 4.3, bookings: 22, earnings: 19800, thisMonth: 3200 },
+    { firstName: 'Anna', lastName: 'Santos', rating: 4.9, bookings: 87, earnings: 78300, thisMonth: 12500, photo: therapistPhotos[0], promotionBid: 500, location: therapistLocations[0] },
+    { firstName: 'Bella', lastName: 'Cruz', rating: 4.7, bookings: 65, earnings: 58500, thisMonth: 9800, photo: therapistPhotos[1], promotionBid: 100, location: therapistLocations[1] },
+    { firstName: 'Carmen', lastName: 'Reyes', rating: 4.8, bookings: 72, earnings: 64800, thisMonth: 11200, photo: therapistPhotos[2], promotionBid: 200, location: therapistLocations[2] },
+    { firstName: 'Diana', lastName: 'Garcia', rating: 4.6, bookings: 45, earnings: 40500, thisMonth: 7500, photo: therapistPhotos[3], promotionBid: 0, location: therapistLocations[3] },
+    { firstName: 'Elena', lastName: 'Lopez', rating: 4.5, bookings: 38, earnings: 34200, thisMonth: 6200, photo: therapistPhotos[4], promotionBid: 50, location: therapistLocations[4] },
+    { firstName: 'Faith', lastName: 'Mendoza', rating: 4.9, bookings: 92, earnings: 82800, thisMonth: 14500, photo: therapistPhotos[5], promotionBid: 300, location: therapistLocations[5] },
+    { firstName: 'Grace', lastName: 'Torres', rating: 4.4, bookings: 28, earnings: 25200, thisMonth: 4800, photo: therapistPhotos[6], promotionBid: 0, location: therapistLocations[6] },
+    { firstName: 'Hannah', lastName: 'Flores', rating: 4.7, bookings: 56, earnings: 50400, thisMonth: 8900, photo: therapistPhotos[7], promotionBid: 100, location: therapistLocations[7] },
+    { firstName: 'Isabel', lastName: 'Rivera', rating: 4.8, bookings: 68, earnings: 61200, thisMonth: 10500, photo: therapistPhotos[8], promotionBid: 150, location: therapistLocations[8] },
+    { firstName: 'Julia', lastName: 'Dela Cruz', rating: 4.3, bookings: 22, earnings: 19800, thisMonth: 3200, photo: therapistPhotos[9], promotionBid: 0, location: therapistLocations[9] },
   ];
 
   const shopTherapists = [];
@@ -455,11 +497,18 @@ async function main() {
 
     const therapist = await prisma.provider.upsert({
       where: { userId: therapistUser.id },
-      update: {},
+      update: {
+        photoUrl: t.photo,
+        lastLatitude: t.location.lat,
+        lastLongitude: t.location.lng,
+        lastLocationAt: new Date(),
+        promotionBid: t.promotionBid,
+      },
       create: {
         userId: therapistUser.id,
         shopId: shop.id,
         displayName: `${t.firstName} ${t.lastName.charAt(0)}.`,
+        photoUrl: t.photo,
         bio: `Professional massage therapist specializing in relaxation and therapeutic massage.`,
         yearsOfExperience: Math.floor(Math.random() * 8) + 2,
         status: 'APPROVED',
@@ -471,6 +520,12 @@ async function main() {
         maxTravelDistance: 10,
         gcashNumber: `0917${Math.floor(1000000 + Math.random() * 9000000)}`,
         approvedAt: new Date(),
+        // Location
+        lastLatitude: t.location.lat,
+        lastLongitude: t.location.lng,
+        lastLocationAt: new Date(),
+        // Promotion bid for visibility ranking
+        promotionBid: t.promotionBid,
       },
     });
 
