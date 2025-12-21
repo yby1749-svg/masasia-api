@@ -362,17 +362,18 @@ export function JobDashboardScreen() {
     );
   };
 
+  // Gradient colors based on online status
+  const headerGradient = isOnline
+    ? ['#6B8E4E', '#C5E1A5', '#FFF8E7'] as [string, string, string]  // Green gradient when online
+    : gradients.hero as [string, string, string];  // Purple gradient when offline (same as customer app)
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
-        }>
-        {/* Header with Online Toggle */}
-        <View style={[
-          styles.headerWrapper,
-          isOnline && styles.headerWrapperOnline
-        ]}>
+    <View style={styles.container}>
+      {/* Hero Header with Gradient - matches customer app design */}
+      <LinearGradient
+        colors={headerGradient}
+        style={styles.heroGradient}>
+        <SafeAreaView edges={['top']}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text style={styles.greeting}>Hello, {provider?.displayName || user?.firstName || 'Provider'}!</Text>
@@ -432,7 +433,14 @@ export function JobDashboardScreen() {
               <Text style={styles.statLabel}>Pending</Text>
             </View>
           </View>
-        </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
+        }>
 
         {/* Ready to Start Job (ACCEPTED but time has arrived) */}
         {renderReadyToStartJob()}
@@ -549,7 +557,7 @@ export function JobDashboardScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -558,14 +566,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerWrapper: {
-    backgroundColor: colors.background,
+  heroGradient: {
     paddingBottom: spacing.lg,
     borderBottomLeftRadius: borderRadius.xxl,
     borderBottomRightRadius: borderRadius.xxl,
   },
-  headerWrapperOnline: {
-    backgroundColor: '#E8F5E9', // Light green when online
+  scrollView: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
