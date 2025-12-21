@@ -113,10 +113,9 @@ class BookingService {
   async listBookings(userId: string, role: string, query: BookingQuery) {
     const isProvider = role === 'provider';
     const hiddenFlag = isProvider ? '[HIDDEN_BY_PROVIDER]' : '[HIDDEN_BY_CUSTOMER]';
-    const notesField = isProvider ? 'providerNotes' : 'customerNotes';
 
-    // Build where clause - handle null notes (NOT contains doesn't work with null)
-    const where = isProvider
+    // Build base where clause - handle null notes (NOT contains doesn't work with null)
+    const baseWhere = isProvider
       ? {
           provider: { userId },
           OR: [
@@ -131,6 +130,11 @@ class BookingService {
             { NOT: { customerNotes: { contains: hiddenFlag } } },
           ],
         };
+
+    // Add status filter if provided
+    const where = query.status
+      ? { ...baseWhere, status: query.status }
+      : baseWhere;
 
     const bookings = await prisma.booking.findMany({
       where,
