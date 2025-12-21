@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { sendPushToUser } from '../utils/push.js';
 
 export const chatService = {
   async getMessages(bookingId: string, userId: string) {
@@ -71,8 +72,26 @@ export const chatService = {
       },
     });
 
-    // TODO: Send push notification to other party
-    // const recipientId = isCustomer ? booking.provider?.userId : booking.customerId;
+    // Send push notification to other party
+    const recipientId = isCustomer ? booking.provider?.userId : booking.customerId;
+    const senderName = isCustomer
+      ? `${booking.customer.firstName || 'Customer'}`
+      : (booking.provider?.displayName || 'Therapist');
+
+    if (recipientId) {
+      // Send push notification asynchronously (don't await to not slow down response)
+      sendPushToUser(recipientId, {
+        title: `New message from ${senderName}`,
+        body: content.length > 100 ? content.substring(0, 97) + '...' : content,
+        data: {
+          type: 'chat_message',
+          bookingId,
+          senderId,
+        },
+      }).catch((error) => {
+        console.error('[Chat] Failed to send push notification:', error);
+      });
+    }
 
     return {
       ...message,

@@ -4,6 +4,7 @@ import type {Booking, BookingStatus} from '@types';
 
 interface JobState {
   pendingJobs: Booking[];
+  rejectedJobs: Booking[];
   declinedJobIds: string[];
   activeJob: Booking | null;
   todayJobs: Booking[];
@@ -11,6 +12,7 @@ interface JobState {
   error: string | null;
 
   fetchPendingJobs: () => Promise<void>;
+  fetchRejectedJobs: () => Promise<void>;
   fetchTodayJobs: () => Promise<void>;
   acceptJob: (bookingId: string) => Promise<Booking>;
   rejectJob: (bookingId: string, reason?: string) => Promise<void>;
@@ -21,6 +23,7 @@ interface JobState {
 
 export const useJobStore = create<JobState>((set, get) => ({
   pendingJobs: [],
+  rejectedJobs: [],
   declinedJobIds: [],
   activeJob: null,
   todayJobs: [],
@@ -36,6 +39,16 @@ export const useJobStore = create<JobState>((set, get) => ({
       const message =
         error instanceof Error ? error.message : 'Failed to fetch jobs';
       set({error: message, isLoading: false});
+    }
+  },
+
+  fetchRejectedJobs: async () => {
+    try {
+      const response = await bookingsApi.getRejectedBookings();
+      set({rejectedJobs: response.data.data});
+    } catch (error: unknown) {
+      // Silently fail - history is not critical
+      console.log('Failed to fetch rejected jobs:', error);
     }
   },
 
@@ -88,21 +101,15 @@ export const useJobStore = create<JobState>((set, get) => ({
   rejectJob: async (bookingId: string, reason?: string) => {
     set({isLoading: true, error: null});
     try {
-      await bookingsApi.rejectBooking(bookingId, reason);
+      const response = await bookingsApi.rejectBooking(bookingId, reason);
+      const rejectedJob = response.data.data;
 
-      // Add to declined list (don't remove from pending yet - show as declined)
+      // Remove from pending and add to rejected jobs (history)
       set(state => ({
-        declinedJobIds: [...state.declinedJobIds, bookingId],
+        pendingJobs: state.pendingJobs.filter(job => job.id !== bookingId),
+        rejectedJobs: [rejectedJob, ...state.rejectedJobs],
         isLoading: false,
       }));
-
-      // Remove from pending after 2 seconds
-      setTimeout(() => {
-        set(state => ({
-          pendingJobs: state.pendingJobs.filter(job => job.id !== bookingId),
-          declinedJobIds: state.declinedJobIds.filter(id => id !== bookingId),
-        }));
-      }, 2000);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Failed to reject job';

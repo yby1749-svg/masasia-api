@@ -16,7 +16,7 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {format} from 'date-fns';
 
-import {bookingsApi, paymentsApi} from '@api';
+import {bookingsApi, paymentsApi, chatApi} from '@api';
 import {Button} from '@components';
 import {useUIStore} from '@store';
 import type {PaymentMethodType} from '@types';
@@ -51,11 +51,24 @@ export function BookingDetailScreen() {
     refetchInterval: 10000, // Auto-refresh every 10 seconds for active bookings
   });
 
+  // Query for unread message count
+  const {data: unreadData, refetch: refetchUnread} = useQuery({
+    queryKey: ['unreadMessages', bookingId],
+    queryFn: async () => {
+      const response = await chatApi.getUnreadCount(bookingId);
+      return response.data.data;
+    },
+    refetchInterval: 5000, // Check for new messages every 5 seconds
+  });
+
+  const unreadCount = unreadData?.count || 0;
+
   // Refetch when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [refetch])
+      refetchUnread();
+    }, [refetch, refetchUnread])
   );
 
   const cancelMutation = useMutation({
@@ -286,6 +299,13 @@ export function BookingDetailScreen() {
                     style={styles.contactButton}
                     onPress={handleChatProvider}>
                     <Icon name="chatbubble" size={20} color={colors.primary} />
+                    {unreadCount > 0 && (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadBadgeText}>
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.contactButton, styles.callContactButton]}
@@ -477,6 +497,26 @@ const styles = StyleSheet.create({
   },
   callContactButton: {
     backgroundColor: colors.primary,
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.card,
+  },
+  unreadBadgeText: {
+    ...typography.caption,
+    fontSize: 10,
+    color: '#fff',
+    fontWeight: '700',
   },
   providerName: {
     ...typography.body,

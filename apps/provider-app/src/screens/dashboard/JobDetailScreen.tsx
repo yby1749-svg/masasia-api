@@ -13,7 +13,7 @@ import {useRoute, useNavigation, RouteProp} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useQuery} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {format} from 'date-fns';
+import {format, isWithinInterval, subMinutes, addMinutes} from 'date-fns';
 import Toast from 'react-native-toast-message';
 import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import {showLocation} from 'react-native-map-link';
@@ -41,7 +41,7 @@ export function JobDetailScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProp>();
   const {bookingId} = route.params;
-  const {updateJobStatus, isLoading: isUpdating} = useJobStore();
+  const {updateJobStatus, acceptJob, rejectJob, isLoading: isUpdating} = useJobStore();
   const [currentStatusIndex, setCurrentStatusIndex] = useState(0);
 
   const {data: booking, refetch} = useQuery({
@@ -61,6 +61,74 @@ export function JobDetailScreen() {
     }
   }, [booking]);
 
+  // Status helpers
+  const isPending = booking?.status === 'PENDING';
+  const isAccepted = booking?.status === 'ACCEPTED';
+  const isCompleted = booking?.status === 'COMPLETED';
+  const isRejected = booking?.status === 'REJECTED';
+  const isActive = ['PROVIDER_EN_ROUTE', 'PROVIDER_ARRIVED', 'IN_PROGRESS'].includes(booking?.status || '');
+
+  // Check if it's time to start the job (within 30 min before scheduled time)
+  const isTimeToStart = () => {
+    if (!booking?.scheduledAt) return false;
+    const scheduledTime = new Date(booking.scheduledAt);
+    const now = new Date();
+    const startWindow = subMinutes(scheduledTime, 30);
+    const endWindow = addMinutes(scheduledTime, booking.duration || 120);
+    return isWithinInterval(now, {start: startWindow, end: endWindow});
+  };
+
+  // Handle accept
+  const handleAccept = async () => {
+    try {
+      await acceptJob(bookingId);
+      refetch();
+      Toast.show({
+        type: 'success',
+        text1: 'Booking Accepted!',
+        text2: 'You can view it in your Schedule',
+      });
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to accept booking',
+      });
+    }
+  };
+
+  // Handle reject
+  const handleReject = async () => {
+    Alert.alert(
+      'Decline Booking',
+      'Are you sure you want to decline this booking?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await rejectJob(bookingId);
+              navigation.goBack();
+              Toast.show({
+                type: 'info',
+                text1: 'Booking Declined',
+                text2: 'The booking has been moved to history',
+              });
+            } catch {
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to decline booking',
+              });
+            }
+          },
+        },
+      ],
+    )
+  };
+
   const getNextStatus = (): BookingStatus | null => {
     if (currentStatusIndex < STATUS_FLOW.length - 1) {
       return STATUS_FLOW[currentStatusIndex + 1];
@@ -79,6 +147,37 @@ export function JobDetailScreen() {
         return 'Start Service';
       case 'COMPLETED':
         return 'Complete Service';
+      default:
+        return '';
+    }
+  };
+
+  const getNextStatusIcon = (): string => {
+    const nextStatus = getNextStatus();
+    switch (nextStatus) {
+      case 'PROVIDER_EN_ROUTE':
+        return 'car';
+      case 'PROVIDER_ARRIVED':
+        return 'flag';
+      case 'IN_PROGRESS':
+        return 'play-circle';
+      case 'COMPLETED':
+        return 'checkmark-circle';
+      default:
+        return 'arrow-forward';
+    }
+  };
+
+  const getCurrentStatusMessage = (): string => {
+    switch (booking?.status) {
+      case 'ACCEPTED':
+        return 'Ready to head to customer';
+      case 'PROVIDER_EN_ROUTE':
+        return 'On the way to customer location';
+      case 'PROVIDER_ARRIVED':
+        return 'Waiting for customer confirmation';
+      case 'IN_PROGRESS':
+        return 'Service in progress';
       default:
         return '';
     }
@@ -172,8 +271,6 @@ export function JobDetailScreen() {
     return null;
   }
 
-  const isCompleted = booking.status === 'COMPLETED';
-
   return (
     <View style={styles.container}>
       <ScrollView>
@@ -182,12 +279,18 @@ export function JobDetailScreen() {
           <View
             style={[
               styles.statusBadge,
-              isCompleted ? styles.completedBadge : undefined,
+              isCompleted && styles.completedBadge,
+              isPending && styles.pendingBadge,
+              isAccepted && styles.acceptedBadge,
+              isRejected && styles.rejectedBadge,
             ]}>
             <Text
               style={[
                 styles.statusText,
-                isCompleted ? styles.completedText : undefined,
+                isCompleted && styles.completedText,
+                isPending && styles.pendingText,
+                isAccepted && styles.acceptedText,
+                isRejected && styles.rejectedText,
               ]}>
               {booking.status.replace(/_/g, ' ')}
             </Text>
@@ -335,27 +438,27 @@ export function JobDetailScreen() {
           )}
         </Card>
 
-        {/* Status Progress */}
-        {!isCompleted && (
+        {/* Status Progress - Only show when ACTIVE (not pending/accepted) */}
+        {isActive && (
           <Card style={styles.section}>
             <Text style={styles.sectionTitle}>Progress</Text>
             <View style={styles.progressContainer}>
               {STATUS_FLOW.slice(1).map((status, index) => {
-                const isActive = index <= currentStatusIndex - 1;
+                const isActiveStep = index <= currentStatusIndex - 1;
                 const isCurrent = index === currentStatusIndex - 1;
                 return (
                   <View key={status} style={styles.progressStep}>
                     <View
                       style={[
                         styles.progressDot,
-                        isActive ? styles.progressDotActive : undefined,
+                        isActiveStep ? styles.progressDotActive : undefined,
                         isCurrent ? styles.progressDotCurrent : undefined,
                       ]}
                     />
                     <Text
                       style={[
                         styles.progressLabel,
-                        isActive ? styles.progressLabelActive : undefined,
+                        isActiveStep ? styles.progressLabelActive : undefined,
                       ]}>
                       {status.replace(/PROVIDER_|_/g, ' ').trim()}
                     </Text>
@@ -365,17 +468,103 @@ export function JobDetailScreen() {
             </View>
           </Card>
         )}
+
+        {/* Accepted Message - Show when accepted but not time yet */}
+        {isAccepted && !isTimeToStart() && (
+          <Card style={styles.acceptedCard}>
+            <Icon name="checkmark-circle" size={48} color={colors.success} />
+            <Text style={styles.acceptedTitle}>Booking Accepted!</Text>
+            <Text style={styles.acceptedSubtitle}>
+              This booking is scheduled for{'\n'}
+              {format(new Date(booking.scheduledAt), 'EEEE, MMM d at h:mm a')}
+            </Text>
+            <TouchableOpacity
+              style={styles.viewScheduleButton}
+              onPress={() => navigation.getParent()?.navigate('ScheduleTab')}>
+              <Icon name="calendar-outline" size={20} color={colors.primary} />
+              <Text style={styles.viewScheduleText}>View in Schedule</Text>
+            </TouchableOpacity>
+          </Card>
+        )}
       </ScrollView>
 
-      {/* Action Button */}
-      {!isCompleted && getNextStatus() && (
+      {/* PENDING: Accept/Reject Buttons */}
+      {isPending && (
         <View style={styles.footer}>
-          <Button
-            title={getNextStatusLabel()}
+          <View style={styles.pendingActions}>
+            <Button
+              title="Decline"
+              variant="outline"
+              onPress={handleReject}
+              loading={isUpdating}
+              style={styles.declineButton}
+            />
+            <Button
+              title="Accept Booking"
+              variant="success"
+              onPress={handleAccept}
+              loading={isUpdating}
+              style={styles.acceptButton}
+            />
+          </View>
+          <TouchableOpacity
+            style={styles.chatWithCustomer}
+            onPress={chatCustomer}>
+            <Icon name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
+            <Text style={styles.chatWithCustomerText}>Chat with customer first</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ACCEPTED & TIME TO START: Show On My Way */}
+      {isAccepted && isTimeToStart() && (
+        <View style={styles.footer}>
+          <View style={styles.statusMessage}>
+            <View style={styles.statusPulse} />
+            <Text style={styles.statusMessageText}>It's time! Head to customer location</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.bigActionButton, isUpdating && styles.bigActionButtonDisabled]}
             onPress={handleUpdateStatus}
-            loading={isUpdating}
-            variant={getNextStatus() === 'COMPLETED' ? 'success' : 'primary'}
-          />
+            disabled={isUpdating}
+            activeOpacity={0.8}>
+            <Icon name="car" size={32} color={colors.textInverse} />
+            <Text style={styles.bigActionButtonText}>On My Way</Text>
+            <Icon name="chevron-forward" size={24} color={colors.textInverse} style={styles.actionArrow} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickNavButton} onPress={openMaps}>
+            <Icon name="navigate" size={20} color={colors.primary} />
+            <Text style={styles.quickNavText}>Open Navigation</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ACTIVE: Show status progress buttons */}
+      {isActive && (
+        <View style={styles.footer}>
+          <View style={styles.statusMessage}>
+            <View style={styles.statusPulse} />
+            <Text style={styles.statusMessageText}>{getCurrentStatusMessage()}</Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.bigActionButton,
+              getNextStatus() === 'COMPLETED' && styles.bigActionButtonSuccess,
+              isUpdating && styles.bigActionButtonDisabled,
+            ]}
+            onPress={handleUpdateStatus}
+            disabled={isUpdating}
+            activeOpacity={0.8}>
+            <Icon name={getNextStatusIcon()} size={32} color={colors.textInverse} />
+            <Text style={styles.bigActionButtonText}>{getNextStatusLabel()}</Text>
+            <Icon name="chevron-forward" size={24} color={colors.textInverse} style={styles.actionArrow} />
+          </TouchableOpacity>
+          {booking?.status === 'PROVIDER_EN_ROUTE' && (
+            <TouchableOpacity style={styles.quickNavButton} onPress={openMaps}>
+              <Icon name="navigate" size={20} color={colors.primary} />
+              <Text style={styles.quickNavText}>Open Navigation</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -400,6 +589,15 @@ const styles = StyleSheet.create({
   completedBadge: {
     backgroundColor: colors.success + '20',
   },
+  pendingBadge: {
+    backgroundColor: colors.warning + '20',
+  },
+  acceptedBadge: {
+    backgroundColor: colors.info + '20',
+  },
+  rejectedBadge: {
+    backgroundColor: colors.error + '20',
+  },
   statusText: {
     ...typography.body,
     fontWeight: '600',
@@ -408,6 +606,15 @@ const styles = StyleSheet.create({
   },
   completedText: {
     color: colors.success,
+  },
+  pendingText: {
+    color: colors.warning,
+  },
+  acceptedText: {
+    color: colors.info,
+  },
+  rejectedText: {
+    color: colors.error,
   },
   section: {
     marginHorizontal: spacing.lg,
@@ -610,10 +817,134 @@ const styles = StyleSheet.create({
   progressLabelActive: {
     color: colors.text,
   },
+  // Accepted card styles
+  acceptedCard: {
+    margin: spacing.lg,
+    alignItems: 'center',
+    padding: spacing.xl,
+    backgroundColor: colors.success + '10',
+    borderWidth: 2,
+    borderColor: colors.success,
+  },
+  acceptedTitle: {
+    ...typography.h2,
+    color: colors.success,
+    marginTop: spacing.md,
+    textAlign: 'center',
+  },
+  acceptedSubtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  viewScheduleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.primarySoft,
+    borderRadius: borderRadius.full,
+  },
+  viewScheduleText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  // Pending actions
+  pendingActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  declineButton: {
+    flex: 1,
+  },
+  acceptButton: {
+    flex: 2,
+  },
+  chatWithCustomer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  chatWithCustomerText: {
+    ...typography.bodySmall,
+    color: colors.primary,
+    fontWeight: '500',
+  },
   footer: {
     padding: spacing.lg,
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.divider,
+  },
+  statusMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  statusPulse: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.success,
+  },
+  statusMessageText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  bigActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.xl,
+    gap: spacing.md,
+    minHeight: 72,
+    shadowColor: colors.primary,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  bigActionButtonSuccess: {
+    backgroundColor: colors.success,
+    shadowColor: colors.success,
+  },
+  bigActionButtonDisabled: {
+    opacity: 0.6,
+  },
+  bigActionButtonText: {
+    ...typography.h3,
+    color: colors.textInverse,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+  },
+  actionArrow: {
+    opacity: 0.8,
+  },
+  quickNavButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  quickNavText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });

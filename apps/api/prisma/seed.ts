@@ -392,7 +392,33 @@ async function main() {
   // She earns 92% (Platform 8%, Provider 92%)
   // Shop therapists earn 55% (Platform 8%, Shop 37%, Provider 55%)
 
-  // Create sample bookings for independent provider (Maria) showing 92% earnings
+  // Create one ACTIVE booking for chat testing
+  const activeBookingDate = new Date();
+  activeBookingDate.setHours(activeBookingDate.getHours() + 2); // 2 hours from now
+
+  const activeBooking = await prisma.booking.create({
+    data: {
+      bookingNumber: `CMM${Date.now().toString(36).toUpperCase()}ACTIVE`,
+      customerId: customer.id,
+      providerId: provider.id,
+      serviceId: 'svc-thai',
+      status: 'ACCEPTED', // Active booking for chat
+      scheduledAt: activeBookingDate,
+      duration: 90,
+      serviceAmount: 1100,
+      totalAmount: 1100,
+      platformFee: 88,
+      providerEarning: 1012,
+      addressText: 'Gramercy Residences, Makati',
+      latitude: 14.5586,
+      longitude: 121.0178,
+    },
+  });
+
+  // Store active booking for notification references (chat needs active booking)
+  (global as any).sampleBookingId = activeBooking.id;
+
+  // Create sample COMPLETED bookings for history
   for (let b = 0; b < 5; b++) {
     const bookingDate = new Date();
     bookingDate.setDate(bookingDate.getDate() - Math.floor(Math.random() * 30));
@@ -425,7 +451,7 @@ async function main() {
     });
   }
 
-  console.log(`✅ Created 5 sample bookings for independent provider (Maria)`);
+  console.log(`✅ Created 1 active + 5 completed bookings for independent provider (Maria)`);
 
   // =========================================================================
   // SHOP THERAPISTS (10 therapists with KPI data)
@@ -674,6 +700,68 @@ async function main() {
   });
 
   console.log('✅ Created promotions');
+
+  // =========================================================================
+  // TEST NOTIFICATIONS
+  // =========================================================================
+
+  // Get the sample booking ID
+  const sampleBookingId = (global as any).sampleBookingId;
+
+  // Notifications for customer
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: customer.id,
+        type: 'BOOKING_ACCEPTED',
+        title: 'Booking Accepted!',
+        body: 'Maria has accepted your booking for Thai Massage',
+        data: sampleBookingId ? {bookingId: sampleBookingId} : undefined,
+        isRead: false,
+      },
+      {
+        userId: customer.id,
+        type: 'SYSTEM',
+        title: 'New message from Maria',
+        body: 'Hi! Looking forward to your appointment',
+        data: sampleBookingId ? {bookingId: sampleBookingId} : undefined,
+        isRead: false,
+      },
+      {
+        userId: customer.id,
+        type: 'PROMOTION',
+        title: 'Special Offer!',
+        body: 'Use code WELCOME20 for 20% off your next booking',
+        isRead: true,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  // Notifications for provider
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: providerUser.id,
+        type: 'BOOKING_REQUEST',
+        title: 'New Booking Request!',
+        body: 'John Customer wants to book Thai Massage for tomorrow',
+        data: sampleBookingId ? {bookingId: sampleBookingId} : undefined,
+        isRead: false,
+      },
+      {
+        userId: providerUser.id,
+        type: 'SYSTEM',
+        title: 'New message from John',
+        body: 'Can you arrive 10 minutes early?',
+        data: sampleBookingId ? {bookingId: sampleBookingId} : undefined,
+        isRead: false,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log('✅ Created test notifications');
 
   console.log('\n🎉 Seeding completed!');
   console.log('\n📋 Test Accounts:');

@@ -20,7 +20,6 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 
 import {providersApi} from '@api';
-import {Button} from '@components';
 import {
   colors,
   typography,
@@ -192,11 +191,24 @@ export function ProviderDetailScreen() {
           </View>
         )}
 
-        {/* Services */}
+        {/* Services - Tap to Book */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Services</Text>
+          <Text style={styles.sectionSubtitle}>Tap a service to book</Text>
           {provider.services?.map((ps: ProviderService) => (
-            <View key={ps.id} style={styles.serviceCard}>
+            <TouchableOpacity
+              key={ps.id}
+              style={styles.serviceCard}
+              activeOpacity={0.7}
+              onPress={() => {
+                navigation.navigate('BookingFlow', {
+                  providerId,
+                  serviceId: ps.service.id,
+                  serviceName: ps.service.name,
+                  price90: ps.price90 || ps.price60,
+                  price120: ps.price120,
+                });
+              }}>
               <Image
                 source={{uri: getServiceImageByName(ps.service.name)}}
                 style={styles.serviceImage}
@@ -206,16 +218,13 @@ export function ProviderDetailScreen() {
                   <Text style={styles.serviceName}>{ps.service.name}</Text>
                   <Text style={styles.serviceDesc}>{ps.service.description}</Text>
                 </View>
-                <View style={styles.servicePrices}>
-                  <Text style={styles.priceLabel}>
-                    90 min: ₱{ps.price90 || ps.price60}
-                  </Text>
-                  {ps.price120 && (
-                    <Text style={styles.priceLabel}>120 min: ₱{ps.price120}</Text>
-                  )}
+                <View style={styles.servicePriceSection}>
+                  <Text style={styles.priceFrom}>from</Text>
+                  <Text style={styles.priceMain}>₱{ps.price90 || ps.price60}</Text>
+                  <Icon name="chevron-forward" size={20} color={colors.primary} />
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -243,16 +252,6 @@ export function ProviderDetailScreen() {
           )}
         </View>
       </ScrollView>
-
-      {/* Book Button */}
-      <View style={styles.footer}>
-        <Button
-          title="Book Now"
-          onPress={() => {
-            navigation.navigate('BookingFlow', {providerId});
-          }}
-        />
-      </View>
     </View>
   );
 }
@@ -325,6 +324,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.h3,
     color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  sectionSubtitle: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
     marginBottom: spacing.md,
   },
   serviceCard: {
@@ -358,12 +362,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
   },
-  servicePrices: {
+  servicePriceSection: {
     alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  priceLabel: {
-    ...typography.bodySmall,
-    color: colors.text,
+  priceFrom: {
+    ...typography.caption,
+    color: colors.textLight,
+  },
+  priceMain: {
+    ...typography.h3,
+    color: colors.primary,
+    fontWeight: '700',
   },
   reviewCard: {
     backgroundColor: colors.card,
@@ -401,12 +411,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     paddingVertical: spacing.lg,
-  },
-  footer: {
-    padding: spacing.lg,
-    backgroundColor: colors.card,
-    borderTopWidth: 1,
-    borderTopColor: colors.divider,
   },
   mapContainer: {
     borderRadius: borderRadius.lg,

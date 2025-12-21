@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {StatusBar} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -7,7 +7,8 @@ import Toast from 'react-native-toast-message';
 
 import {RootNavigator} from './src/navigation';
 import {toastConfig} from './src/config/toast';
-import {useAuthStore} from './src/store';
+import {useAuthStore, useNotificationStore} from './src/store';
+import {notificationsApi} from './src/api';
 
 // Firebase push notifications - uncomment after configuring Firebase
 // import {
@@ -27,7 +28,25 @@ const queryClient = new QueryClient({
 });
 
 function AppContent(): React.JSX.Element {
-  const {isAuthenticated: _isAuthenticated} = useAuthStore();
+  const {isAuthenticated} = useAuthStore();
+  const {setNotifications} = useNotificationStore();
+
+  // Fetch notifications when authenticated
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (isAuthenticated) {
+        try {
+          const response = await notificationsApi.getNotifications({limit: 50});
+          if (response.data.data) {
+            setNotifications(response.data.data);
+          }
+        } catch (error) {
+          console.log('[App] Failed to fetch notifications:', error);
+        }
+      }
+    };
+    fetchNotifications();
+  }, [isAuthenticated, setNotifications]);
 
   // Firebase push notifications - uncomment after configuring Firebase
   // useEffect(() => {

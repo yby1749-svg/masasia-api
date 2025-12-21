@@ -18,7 +18,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 
 import {servicesApi, providersApi} from '@api';
-import {useAuthStore, useLocationStore} from '@store';
+import {useAuthStore, useLocationStore, useNotificationStore} from '@store';
 import {
   colors,
   typography,
@@ -37,6 +37,7 @@ const {width} = Dimensions.get('window');
 export function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const {user} = useAuthStore();
+  const {unreadCount} = useNotificationStore();
   const {requestPermission, getCurrentLocation, latitude, longitude} =
     useLocationStore();
 
@@ -118,9 +119,18 @@ export function HomeScreen() {
                 Ready for a relaxing massage?
               </Text>
             </View>
-            <TouchableOpacity style={styles.notificationButton}>
-              <View style={styles.notificationBadge}>
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={() => (navigation as any).navigate('InboxTab')}>
+              <View style={styles.notificationIconContainer}>
                 <Icon name="notifications" size={22} color={colors.text} />
+                {unreadCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
           </View>
@@ -307,7 +317,7 @@ const styles = StyleSheet.create({
   notificationButton: {
     marginLeft: spacing.md,
   },
-  notificationBadge: {
+  notificationIconContainer: {
     width: 44,
     height: 44,
     borderRadius: borderRadius.lg,
@@ -315,6 +325,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.sm,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.card,
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
   },
   searchBar: {
     flexDirection: 'row',

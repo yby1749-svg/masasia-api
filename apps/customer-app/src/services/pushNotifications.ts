@@ -268,6 +268,11 @@ function handleNotificationAction(
       console.log('[Push] Service completed:', bookingId);
       break;
 
+    case 'chat_message':
+    case 'new_message':
+      console.log('[Push] New chat message for booking:', bookingId);
+      break;
+
     default:
       console.log('[Push] Unknown notification type:', type);
   }

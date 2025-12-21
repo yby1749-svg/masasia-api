@@ -12,12 +12,37 @@ import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {format, startOfWeek, addDays, isSameDay} from 'date-fns';
+import {format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, isToday, isSameMonth} from 'date-fns';
 
 import {Card} from '@components';
-import {bookingsApi} from '@api';
+import {bookingsApi, chatApi} from '@api';
 import {colors, typography, spacing, borderRadius} from '@config/theme';
 import type {ScheduleStackParamList, Booking, BookingStatus} from '@types';
+
+// Chat badge component for booking cards
+function ChatBadge({bookingId}: {bookingId: string}) {
+  const {data} = useQuery({
+    queryKey: ['unreadChat', bookingId],
+    queryFn: async () => {
+      const response = await chatApi.getUnreadCount(bookingId);
+      return response.data.data;
+    },
+    refetchInterval: 10000, // Check every 10 seconds
+  });
+
+  const unreadCount = data?.count || 0;
+
+  if (unreadCount === 0) return null;
+
+  return (
+    <View style={chatBadgeStyles.container}>
+      <Icon name="chatbubble" size={14} color="#fff" />
+      <Text style={chatBadgeStyles.text}>
+        {unreadCount > 9 ? '9+' : unreadCount}
+      </Text>
+    </View>
+  );
+}
 
 type NavigationProp = NativeStackNavigationProp<
   ScheduleStackParamList,
@@ -63,6 +88,9 @@ export function CalendarScreen() {
   const navigation = useNavigation<NavigationProp>();
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = React.useState(new Date());
+  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
+    startOfWeek(new Date(), {weekStartsOn: 1})
+  );
   const [activeTab, setActiveTab] = useState<TabType>('schedule');
 
   const {
@@ -101,8 +129,28 @@ export function CalendarScreen() {
     );
   };
 
-  const weekStart = startOfWeek(new Date(), {weekStartsOn: 1});
-  const weekDays = Array.from({length: 7}, (_, i) => addDays(weekStart, i));
+  // Week navigation functions
+  const goToPreviousWeek = () => {
+    const newWeekStart = subWeeks(currentWeekStart, 1);
+    setCurrentWeekStart(newWeekStart);
+    setSelectedDate(newWeekStart);
+  };
+
+  const goToNextWeek = () => {
+    const newWeekStart = addWeeks(currentWeekStart, 1);
+    setCurrentWeekStart(newWeekStart);
+    setSelectedDate(newWeekStart);
+  };
+
+  const goToToday = () => {
+    const todayWeekStart = startOfWeek(new Date(), {weekStartsOn: 1});
+    setCurrentWeekStart(todayWeekStart);
+    setSelectedDate(new Date());
+  };
+
+  const weekDays = Array.from({length: 7}, (_, i) => addDays(currentWeekStart, i));
+  const weekEnd = addDays(currentWeekStart, 6);
+  const showMonthRange = !isSameMonth(currentWeekStart, weekEnd);
 
   const activeBookings = bookings?.filter((b: Booking) => ACTIVE_STATUSES.includes(b.status)) || [];
   const historyBookings = bookings?.filter((b: Booking) => HISTORY_STATUSES.includes(b.status)) || [];
@@ -119,10 +167,39 @@ export function CalendarScreen() {
 
   const renderScheduleTab = () => (
     <>
+      {/* Month Header with Navigation */}
+      <View style={styles.monthHeader}>
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={goToPreviousWeek}>
+          <Icon name="chevron-back" size={24} color={colors.primary} />
+        </TouchableOpacity>
+
+        <View style={styles.monthInfo}>
+          <Text style={styles.monthText}>
+            {showMonthRange
+              ? `${format(currentWeekStart, 'MMM')} - ${format(weekEnd, 'MMM yyyy')}`
+              : format(currentWeekStart, 'MMMM yyyy')}
+          </Text>
+          {!isToday(selectedDate) && (
+            <TouchableOpacity style={styles.todayButton} onPress={goToToday}>
+              <Text style={styles.todayButtonText}>Today</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={goToNextWeek}>
+          <Icon name="chevron-forward" size={24} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
+
       {/* Week Calendar */}
       <View style={styles.weekCalendar}>
         {weekDays.map(day => {
           const isSelected = isSameDay(day, selectedDate);
+          const isDayToday = isToday(day);
           const bookingCount = getBookingsForDay(day);
 
           return (
@@ -130,26 +207,37 @@ export function CalendarScreen() {
               key={day.toISOString()}
               style={[
                 styles.dayButton,
-                isSelected ? styles.selectedDay : undefined,
+                isSelected && styles.selectedDay,
+                isDayToday && !isSelected && styles.todayDay,
               ]}
               onPress={() => setSelectedDate(day)}>
               <Text
                 style={[
                   styles.dayName,
-                  isSelected ? styles.selectedDayText : undefined,
+                  isSelected && styles.selectedDayText,
+                  isDayToday && !isSelected && styles.todayDayText,
                 ]}>
                 {format(day, 'EEE')}
               </Text>
               <Text
                 style={[
                   styles.dayNumber,
-                  isSelected ? styles.selectedDayText : undefined,
+                  isSelected && styles.selectedDayText,
+                  isDayToday && !isSelected && styles.todayDayText,
                 ]}>
                 {format(day, 'd')}
               </Text>
               {bookingCount > 0 && (
-                <View style={styles.bookingDot}>
-                  <Text style={styles.bookingDotText}>{bookingCount}</Text>
+                <View style={[
+                  styles.bookingDot,
+                  isSelected && styles.bookingDotSelected,
+                ]}>
+                  <Text style={[
+                    styles.bookingDotText,
+                    isSelected && styles.bookingDotTextSelected,
+                  ]}>
+                    {bookingCount}
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -209,9 +297,12 @@ export function CalendarScreen() {
                 </View>
                 <View style={styles.bookingInfo}>
                   <Text style={styles.serviceName}>{booking.service?.name}</Text>
-                  <Text style={styles.customerName}>
-                    {booking.customer?.firstName} {booking.customer?.lastName}
-                  </Text>
+                  <View style={styles.customerRow}>
+                    <Text style={styles.customerName}>
+                      {booking.customer?.firstName} {booking.customer?.lastName}
+                    </Text>
+                    <ChatBadge bookingId={booking.id} />
+                  </View>
                 </View>
                 <View style={[styles.statusBadge, {backgroundColor: getStatusStyle(booking.status).backgroundColor}]}>
                   <Text style={[styles.statusText, {color: getStatusStyle(booking.status).color}]}>
@@ -315,6 +406,45 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  // Month header
+  monthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  navButton: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primarySoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthInfo: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  monthText: {
+    ...typography.h3,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  todayButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  todayButtonText: {
+    ...typography.caption,
+    color: colors.textInverse,
+    fontWeight: '600',
+  },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: colors.card,
@@ -358,6 +488,14 @@ const styles = StyleSheet.create({
   selectedDay: {
     backgroundColor: colors.primary,
   },
+  todayDay: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  todayDayText: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
   dayName: {
     ...typography.caption,
     color: colors.textSecondary,
@@ -380,10 +518,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.xs,
   },
+  bookingDotSelected: {
+    backgroundColor: colors.card,
+  },
   bookingDotText: {
     ...typography.caption,
     color: colors.textInverse,
     fontWeight: '600',
+  },
+  bookingDotTextSelected: {
+    color: colors.primary,
   },
   quickActions: {
     backgroundColor: colors.card,
@@ -457,10 +601,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
+  customerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+    gap: spacing.sm,
+  },
   customerName: {
     ...typography.bodySmall,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   statusBadge: {
     alignSelf: 'flex-start',
@@ -523,5 +672,23 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     borderRadius: borderRadius.full,
     backgroundColor: colors.error + '10',
+  },
+});
+
+const chatBadgeStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+    gap: 4,
+  },
+  text: {
+    ...typography.caption,
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 10,
   },
 });

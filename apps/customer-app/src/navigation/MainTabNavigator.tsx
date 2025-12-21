@@ -1,4 +1,5 @@
 import React from 'react';
+import {View, Text, StyleSheet} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -18,13 +19,20 @@ import {InboxScreen} from '@screens/inbox/InboxScreen';
 import {ProfileScreen} from '@screens/profile/ProfileScreen';
 import {EditProfileScreen} from '@screens/profile/EditProfileScreen';
 import {NotificationsScreen} from '@screens/notifications';
+import {useNotificationStore} from '@store';
 import {colors} from '@config/theme';
 
 export type HomeStackParamList = {
   Home: undefined;
   ProviderList: {serviceId?: string};
   ProviderDetail: {providerId: string};
-  BookingFlow: {providerId: string};
+  BookingFlow: {
+    providerId: string;
+    serviceId?: string;
+    serviceName?: string;
+    price90?: number;
+    price120?: number;
+  };
   PaymentWebView: {
     bookingId: string;
     paymentIntentId: string;
@@ -150,6 +158,36 @@ function ProfileStackNavigator() {
   );
 }
 
+// Inbox tab icon with badge
+function InboxTabIcon({
+  focused,
+  color,
+  size,
+}: {
+  focused: boolean;
+  color: string;
+  size: number;
+}) {
+  const {unreadCount} = useNotificationStore();
+
+  return (
+    <View style={tabStyles.iconContainer}>
+      <Icon
+        name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
+        size={size}
+        color={color}
+      />
+      {unreadCount > 0 && (
+        <View style={tabStyles.badge}>
+          <Text style={tabStyles.badgeText}>
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function MainTabNavigator() {
   return (
     <Tab.Navigator
@@ -166,8 +204,8 @@ export function MainTabNavigator() {
               iconName = focused ? 'calendar' : 'calendar-outline';
               break;
             case 'InboxTab':
-              iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-              break;
+              // Handled by custom component
+              return <InboxTabIcon focused={focused} color={color} size={size} />;
             case 'ProfileTab':
               iconName = focused ? 'person' : 'person-outline';
               break;
@@ -203,3 +241,26 @@ export function MainTabNavigator() {
     </Tab.Navigator>
   );
 }
+
+const tabStyles = StyleSheet.create({
+  iconContainer: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+});

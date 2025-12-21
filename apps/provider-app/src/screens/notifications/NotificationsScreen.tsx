@@ -73,18 +73,34 @@ export function NotificationsScreen() {
       }
     }
 
-    // Navigate based on notification type
     const bookingId = notification.data?.bookingId as string | undefined;
     if (bookingId) {
-      // Navigate to job details - you may need to adjust this based on your navigation structure
-      // navigation.navigate('JobDetail', { jobId: bookingId });
+      // For message notifications, go directly to chat
+      if (notification.type === 'SYSTEM' || notification.title?.toLowerCase().includes('message')) {
+        (navigation as any).navigate('DashboardTab', {
+          screen: 'Chat',
+          params: {bookingId},
+        });
+      } else {
+        // For other notifications, go to job detail
+        (navigation as any).navigate('DashboardTab', {
+          screen: 'JobDetail',
+          params: {bookingId},
+        });
+      }
     }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, title?: string) => {
+    // Check if it's a message notification
+    if (type === 'SYSTEM' || title?.toLowerCase().includes('message')) {
+      return {name: 'chatbubble', color: '#9333EA'}; // Purple for chat
+    }
     switch (type) {
       case 'BOOKING_REQUEST':
         return {name: 'calendar', color: colors.primary};
+      case 'BOOKING_ACCEPTED':
+        return {name: 'checkmark-circle', color: colors.success};
       case 'BOOKING_CANCELLED':
         return {name: 'close-circle', color: colors.error};
       case 'PAYMENT_RECEIVED':
@@ -93,8 +109,8 @@ export function NotificationsScreen() {
         return {name: 'wallet', color: colors.success};
       case 'REVIEW_RECEIVED':
         return {name: 'star', color: colors.warning};
-      case 'SYSTEM':
-        return {name: 'information-circle', color: colors.info};
+      case 'SERVICE_COMPLETED':
+        return {name: 'checkmark-done', color: colors.success};
       default:
         return {name: 'notifications', color: colors.primary};
     }
@@ -116,12 +132,13 @@ export function NotificationsScreen() {
   };
 
   const renderNotification = ({item}: {item: NotificationItem}) => {
-    const icon = getNotificationIcon(item.type);
+    const icon = getNotificationIcon(item.type, item.title);
 
     return (
       <TouchableOpacity
         style={[styles.notificationItem, !item.isRead && styles.unread]}
-        onPress={() => handleNotificationPress(item)}>
+        onPress={() => handleNotificationPress(item)}
+        activeOpacity={0.7}>
         <View style={[styles.iconContainer, {backgroundColor: icon.color + '20'}]}>
           <Icon name={icon.name} size={24} color={icon.color} />
         </View>
@@ -135,6 +152,7 @@ export function NotificationsScreen() {
           <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
         </View>
         {!item.isRead && <View style={styles.unreadDot} />}
+        <Icon name="chevron-forward" size={18} color={colors.textLight} style={styles.chevron} />
       </TouchableOpacity>
     );
   };
@@ -252,7 +270,7 @@ const styles = StyleSheet.create({
   },
   notificationItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     backgroundColor: colors.card,
     padding: spacing.md,
     borderRadius: borderRadius.lg,
@@ -297,5 +315,8 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: spacing.sm,
+  },
+  chevron: {
+    marginLeft: spacing.xs,
   },
 });

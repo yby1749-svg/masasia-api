@@ -75,7 +75,8 @@ export const providersApi = {
         id: string;
         name: string;
         description: string;
-        basePrice60: number;
+        basePrice: number;
+        baseDuration: number;
       }>;
     }>('/services'),
 

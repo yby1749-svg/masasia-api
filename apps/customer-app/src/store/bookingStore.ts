@@ -3,6 +3,7 @@ import type {
   Booking,
   BookingRequest,
   ProviderDetail,
+  ProviderService,
   Service,
   Address,
   PaymentMethodType,
@@ -11,6 +12,7 @@ import type {
 interface BookingDraft {
   provider?: ProviderDetail;
   service?: Service;
+  providerService?: ProviderService;
   duration?: 90 | 120;
   scheduledDate?: string;
   scheduledTime?: string;
@@ -116,12 +118,12 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
   calculatePrice: () => {
     const {draft} = get();
-    if (!draft.provider || !draft.service || !draft.duration) {
+    if (!draft.service || !draft.duration) {
       return 0;
     }
 
-    // Find provider's price for this service
-    const providerService = draft.provider.services?.find(
+    // Use pre-set providerService or find from provider
+    const providerService = draft.providerService || draft.provider?.services?.find(
       ps => ps.serviceId === draft.service?.id,
     );
 
@@ -137,9 +139,9 @@ export const useBookingStore = create<BookingState>((set, get) => ({
     // Fall back to service base price
     switch (draft.duration) {
       case 90:
-        return draft.service.basePrice90;
+        return draft.service.basePrice90 || 0;
       case 120:
-        return draft.service.basePrice120;
+        return draft.service.basePrice120 || 0;
       default:
         return 0;
     }

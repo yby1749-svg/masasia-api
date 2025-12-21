@@ -42,9 +42,9 @@ const TOTAL_STEPS = 5;
 export function BookingFlowScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProps>();
-  const {providerId} = route.params;
+  const {providerId, serviceId, serviceName, price90, price120} = route.params;
 
-  const {currentStep, setDraft, clearDraft, prevStep} = useBookingStore();
+  const {currentStep, setDraft, clearDraft, prevStep, nextStep, setStep} = useBookingStore();
 
   const {
     data: provider,
@@ -58,12 +58,34 @@ export function BookingFlowScreen() {
     },
   });
 
-  // Initialize draft with provider data
+  // Initialize draft with provider data and pre-selected service
   useEffect(() => {
     if (provider) {
-      setDraft({provider});
+      // If service was pre-selected from provider detail screen
+      if (serviceId && serviceName) {
+        // Find the provider service to get full data
+        const selectedService = provider.services?.find(
+          (ps: any) => ps.service.id === serviceId || ps.serviceId === serviceId
+        );
+
+        setDraft({
+          provider,
+          service: selectedService?.service || {id: serviceId, name: serviceName},
+          providerService: selectedService || {
+            serviceId,
+            price90: price90 || 0,
+            price120: price120 || null,
+          },
+          // Don't set duration - let user choose 90m or 120m
+        });
+
+        // Stay on step 0 (service selection) so user can choose duration
+        // Service is already pre-selected, user just picks 90m or 120m
+      } else {
+        setDraft({provider});
+      }
     }
-  }, [provider, setDraft]);
+  }, [provider, serviceId, serviceName, price90, price120, setDraft, setStep]);
 
   // Clear draft on unmount
   useEffect(() => {

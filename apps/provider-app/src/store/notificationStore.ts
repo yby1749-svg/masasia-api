@@ -8,6 +8,7 @@ interface NotificationState {
   isLoading: boolean;
 
   setFcmToken: (token: string) => void;
+  setNotifications: (notifications: Notification[]) => void;
   addNotification: (notification: Notification) => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
@@ -21,6 +22,12 @@ export const useNotificationStore = create<NotificationState>((set, _get) => ({
   isLoading: false,
 
   setFcmToken: (token: string) => set({fcmToken: token}),
+
+  setNotifications: (notifications: Notification[]) =>
+    set({
+      notifications,
+      unreadCount: notifications.filter(n => !n.isRead).length,
+    }),
 
   addNotification: (notification: Notification) =>
     set(state => ({

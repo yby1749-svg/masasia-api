@@ -8,6 +8,8 @@ import Toast from 'react-native-toast-message';
 import {RootNavigator} from '@navigation/RootNavigator';
 import {toastConfig} from '@config/toast';
 import {useAuthStore} from '@store/authStore';
+import {useNotificationStore} from '@store/notificationStore';
+import {notificationsApi} from '@api';
 
 // Firebase push notifications - uncomment after configuring Firebase
 // import {
@@ -27,7 +29,25 @@ const queryClient = new QueryClient({
 });
 
 function AppContent(): React.JSX.Element {
-  const {isAuthenticated: _isAuthenticated} = useAuthStore();
+  const {isAuthenticated} = useAuthStore();
+  const {setNotifications} = useNotificationStore();
+
+  // Fetch notifications when authenticated
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (isAuthenticated) {
+        try {
+          const response = await notificationsApi.getNotifications({limit: 50});
+          if (response.data.data) {
+            setNotifications(response.data.data);
+          }
+        } catch (error) {
+          console.log('[App] Failed to fetch notifications:', error);
+        }
+      }
+    };
+    fetchNotifications();
+  }, [isAuthenticated, setNotifications]);
 
   // Firebase push notifications - uncomment after configuring Firebase
   // useEffect(() => {

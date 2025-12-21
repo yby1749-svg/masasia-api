@@ -1,15 +1,46 @@
 import React from 'react';
+import {View, Text, StyleSheet} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {DashboardNavigator} from './DashboardNavigator';
 import {ScheduleNavigator} from './ScheduleNavigator';
 import {EarningsNavigator} from './EarningsNavigator';
 import {ProfileNavigator} from './ProfileNavigator';
-import {useAuthStore} from '@store';
+import {useAuthStore, useNotificationStore} from '@store';
 import type {MainTabParamList} from '@types';
 import {colors, typography} from '@config/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+// Schedule tab icon with notification badge
+function ScheduleTabIcon({
+  focused,
+  color,
+  size,
+}: {
+  focused: boolean;
+  color: string;
+  size: number;
+}) {
+  const {unreadCount} = useNotificationStore();
+
+  return (
+    <View style={tabStyles.iconContainer}>
+      <Icon
+        name={focused ? 'calendar' : 'calendar-outline'}
+        size={size}
+        color={color}
+      />
+      {unreadCount > 0 && (
+        <View style={tabStyles.badge}>
+          <Text style={tabStyles.badgeText}>
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 export function MainTabNavigator() {
   const {provider} = useAuthStore();
@@ -49,8 +80,8 @@ export function MainTabNavigator() {
         component={ScheduleNavigator}
         options={{
           tabBarLabel: 'Schedule',
-          tabBarIcon: ({color, size}) => (
-            <Icon name="calendar-outline" size={size} color={color} />
+          tabBarIcon: ({focused, color, size}) => (
+            <ScheduleTabIcon focused={focused} color={color} size={size} />
           ),
         }}
       />
@@ -80,3 +111,26 @@ export function MainTabNavigator() {
     </Tab.Navigator>
   );
 }
+
+const tabStyles = StyleSheet.create({
+  iconContainer: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+});

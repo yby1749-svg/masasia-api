@@ -73,9 +73,10 @@ export function ServiceSelectionStep() {
         ))}
 
         {/* Duration Section */}
-        <Text style={[styles.sectionTitle, styles.sectionMargin]}>
-          Select Duration
-        </Text>
+        <View style={[styles.durationHeader, styles.sectionMargin]}>
+          <Icon name="notifications" size={24} color={colors.primary} />
+          <Text style={styles.durationTitle}>Select Duration</Text>
+        </View>
         <View style={styles.durationContainer}>
           <TouchableOpacity
             style={[
@@ -143,6 +144,16 @@ const styles = StyleSheet.create({
   },
   sectionMargin: {
     marginTop: spacing.xl,
+  },
+  durationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  durationTitle: {
+    ...typography.h3,
+    color: colors.text,
   },
   serviceCard: {
     flexDirection: 'row',

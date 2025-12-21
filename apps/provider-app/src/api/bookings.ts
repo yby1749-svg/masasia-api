@@ -59,4 +59,13 @@ export const bookingsApi = {
   // Hide booking from history
   hideBooking: (bookingId: string) =>
     apiClient.delete(`/bookings/${bookingId}/hide`),
+
+  // Get rejected bookings (history)
+  getRejectedBookings: () =>
+    apiClient.get<{data: Booking[]}>('/bookings', {
+      params: {
+        role: 'provider',
+        status: 'REJECTED',
+      },
+    }),
 };
