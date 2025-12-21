@@ -190,12 +190,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: spacing.md,
     borderRadius: borderRadius.lg,
-    borderBottomLeftRadius: borderRadius.xs,
+    borderBottomLeftRadius: borderRadius.sm,
   },
   ownMessageBubble: {
     backgroundColor: colors.primary,
     borderBottomLeftRadius: borderRadius.lg,
-    borderBottomRightRadius: borderRadius.xs,
+    borderBottomRightRadius: borderRadius.sm,
   },
   messageText: {
     ...typography.body,

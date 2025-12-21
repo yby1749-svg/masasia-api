@@ -14,6 +14,7 @@ export interface User {
 export interface Provider {
   id: string;
   userId: string;
+  shopId?: string | null;
   displayName: string;
   photoUrl?: string;
   bio?: string;
@@ -26,6 +27,10 @@ export interface Provider {
   promotionBid?: number;
   services?: ProviderService[];
   user?: User;
+  shop?: {
+    id: string;
+    name: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

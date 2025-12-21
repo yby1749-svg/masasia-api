@@ -15,7 +15,8 @@ import {useQuery} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {format} from 'date-fns';
 import Toast from 'react-native-toast-message';
-import MapView, {Marker, PROVIDER_DEFAULT} from 'react-native-maps';
+import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
+import {showLocation} from 'react-native-map-link';
 
 import {Button, Card} from '@components';
 import {bookingsApi} from '@api';
@@ -71,7 +72,7 @@ export function JobDetailScreen() {
     const nextStatus = getNextStatus();
     switch (nextStatus) {
       case 'PROVIDER_EN_ROUTE':
-        return 'Start Navigation';
+        return 'On My Way';
       case 'PROVIDER_ARRIVED':
         return 'I Have Arrived';
       case 'IN_PROGRESS':
@@ -117,28 +118,6 @@ export function JobDetailScreen() {
           },
         ],
       );
-    } else if (nextStatus === 'PROVIDER_EN_ROUTE') {
-      // Update status and open external maps
-      try {
-        await updateJobStatus(bookingId, nextStatus);
-        refetch();
-        // Open external maps for navigation
-        const lat = booking?.latitude || booking?.address?.latitude;
-        const lng = booking?.longitude || booking?.address?.longitude;
-        if (lat && lng) {
-          const label = encodeURIComponent(booking?.addressText || 'Customer Location');
-          const url = `maps:0,0?q=${lat},${lng}(${label})`;
-          Linking.openURL(url).catch(() => {
-            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
-          });
-        }
-      } catch {
-        Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Failed to update status',
-        });
-      }
     } else {
       try {
         await updateJobStatus(bookingId, nextStatus);
@@ -162,12 +141,14 @@ export function JobDetailScreen() {
       return;
     }
 
-    // Open external maps app
-    const label = encodeURIComponent(booking?.addressText || 'Customer Location');
-    const url = `maps:0,0?q=${lat},${lng}(${label})`;
-    Linking.openURL(url).catch(() => {
-      // Fallback to Google Maps web
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+    // Open Google Maps directly
+    showLocation({
+      latitude: lat,
+      longitude: lng,
+      title: booking?.addressText || 'Customer Location',
+      googleForceLatLon: true,
+      alwaysIncludeGoogle: true,
+      appsWhiteList: ['google-maps'],
     });
   };
 
@@ -326,7 +307,7 @@ export function JobDetailScreen() {
             <View style={styles.mapContainer}>
               <MapView
                 style={styles.map}
-                provider={PROVIDER_DEFAULT}
+                provider={PROVIDER_GOOGLE}
                 initialRegion={{
                   latitude: booking.latitude || booking.address?.latitude || 14.5995,
                   longitude: booking.longitude || booking.address?.longitude || 120.9842,

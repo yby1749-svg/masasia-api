@@ -12,6 +12,7 @@ import {useRoute, RouteProp} from '@react-navigation/native';
 import {useQuery} from '@tanstack/react-query';
 import MapView, {Marker, PROVIDER_GOOGLE} from 'react-native-maps';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {showLocation} from 'react-native-map-link';
 
 import {bookingsApi} from '@api';
 import {socketService} from '@services/socket';
@@ -95,14 +96,14 @@ export function TrackProviderScreen() {
   const openInMaps = () => {
     if (!booking) return;
 
-    const destination = `${booking.latitude},${booking.longitude}`;
-    const label = encodeURIComponent(booking.addressText || 'Destination');
-
-    if (Platform.OS === 'ios') {
-      Linking.openURL(`maps:0,0?q=${label}@${destination}`);
-    } else {
-      Linking.openURL(`geo:0,0?q=${destination}(${label})`);
-    }
+    showLocation({
+      latitude: booking.latitude,
+      longitude: booking.longitude,
+      title: booking.addressText || 'Your Location',
+      googleForceLatLon: true,
+      alwaysIncludeGoogle: true,
+      appsWhiteList: ['google-maps'],
+    });
   };
 
   if (isLoading) {

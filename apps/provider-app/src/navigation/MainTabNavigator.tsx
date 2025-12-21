@@ -5,12 +5,18 @@ import {DashboardNavigator} from './DashboardNavigator';
 import {ScheduleNavigator} from './ScheduleNavigator';
 import {EarningsNavigator} from './EarningsNavigator';
 import {ProfileNavigator} from './ProfileNavigator';
+import {useAuthStore} from '@store';
 import type {MainTabParamList} from '@types';
 import {colors, typography} from '@config/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export function MainTabNavigator() {
+  const {provider} = useAuthStore();
+
+  // Check if provider belongs to a shop
+  const belongsToShop = !!provider?.shopId;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -48,16 +54,19 @@ export function MainTabNavigator() {
           ),
         }}
       />
-      <Tab.Screen
-        name="EarningsTab"
-        component={EarningsNavigator}
-        options={{
-          tabBarLabel: 'Earnings',
-          tabBarIcon: ({color, size}) => (
-            <Icon name="wallet-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      {/* Only show Earnings tab for independent providers (not belonging to a shop) */}
+      {!belongsToShop && (
+        <Tab.Screen
+          name="EarningsTab"
+          component={EarningsNavigator}
+          options={{
+            tabBarLabel: 'Earnings',
+            tabBarIcon: ({color, size}) => (
+              <Icon name="wallet-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
       <Tab.Screen
         name="ProfileTab"
         component={ProfileNavigator}
