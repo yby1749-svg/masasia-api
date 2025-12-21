@@ -2,6 +2,7 @@ import React from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {getFocusedRouteNameFromRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import {HomeScreen} from '@screens/home/HomeScreen';
@@ -222,11 +223,32 @@ export function MainTabNavigator() {
         name="HomeTab"
         component={HomeStackNavigator}
         options={{tabBarLabel: 'Home'}}
+        listeners={({navigation, route}) => ({
+          tabPress: (e) => {
+            // Get the current route name in the Home stack
+            const routeName = getFocusedRouteNameFromRoute(route) ?? 'Home';
+
+            // If not on Home screen, reset to Home when tab is pressed
+            if (routeName !== 'Home') {
+              e.preventDefault();
+              navigation.navigate('HomeTab', {screen: 'Home'});
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="BookingsTab"
         component={BookingsStackNavigator}
         options={{tabBarLabel: 'Bookings'}}
+        listeners={({navigation, route}) => ({
+          tabPress: (e) => {
+            const routeName = getFocusedRouteNameFromRoute(route) ?? 'BookingList';
+            if (routeName !== 'BookingList') {
+              e.preventDefault();
+              navigation.navigate('BookingsTab', {screen: 'BookingList'});
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="InboxTab"
@@ -237,6 +259,15 @@ export function MainTabNavigator() {
         name="ProfileTab"
         component={ProfileStackNavigator}
         options={{tabBarLabel: 'Profile'}}
+        listeners={({navigation, route}) => ({
+          tabPress: (e) => {
+            const routeName = getFocusedRouteNameFromRoute(route) ?? 'Profile';
+            if (routeName !== 'Profile') {
+              e.preventDefault();
+              navigation.navigate('ProfileTab', {screen: 'Profile'});
+            }
+          },
+        })}
       />
     </Tab.Navigator>
   );
