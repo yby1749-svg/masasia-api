@@ -51,8 +51,8 @@ type NavigationProp = NativeStackNavigationProp<
 
 type TabType = 'schedule' | 'history';
 
-const ACTIVE_STATUSES = ['PENDING', 'ACCEPTED', 'CONFIRMED', 'PROVIDER_EN_ROUTE', 'PROVIDER_ARRIVED', 'IN_PROGRESS'];
-const HISTORY_STATUSES = ['COMPLETED', 'CANCELLED', 'REJECTED'];
+const ACTIVE_STATUSES = ['PENDING', 'ACCEPTED', 'CONFIRMED', 'PROVIDER_EN_ROUTE', 'PROVIDER_ARRIVED', 'IN_PROGRESS', 'COMPLETED'];
+const HISTORY_STATUSES = ['CANCELLED', 'REJECTED'];
 
 const getStatusStyle = (status: BookingStatus) => {
   const statusStyles: Record<BookingStatus, {backgroundColor: string; color: string}> = {
@@ -77,7 +77,7 @@ const getStatusLabel = (status: string) => {
     case 'PROVIDER_EN_ROUTE': return 'En Route';
     case 'PROVIDER_ARRIVED': return 'Arrived';
     case 'IN_PROGRESS': return 'In Progress';
-    case 'COMPLETED': return 'Completed';
+    case 'COMPLETED': return 'Done';
     case 'CANCELLED': return 'Cancelled';
     case 'REJECTED': return 'Rejected';
     default: return status.replace(/_/g, ' ');
@@ -276,42 +276,53 @@ export function CalendarScreen() {
             <Text style={styles.emptyText}>No bookings on this day</Text>
           </View>
         ) : (
-          selectedDayBookings.map((booking: Booking) => (
-            <TouchableOpacity
-              key={booking.id}
-              onPress={() => {
-                navigation.getParent()?.navigate('DashboardTab', {
-                  screen: 'JobDetail',
-                  params: {bookingId: booking.id},
-                });
-              }}
-              activeOpacity={0.7}>
-              <Card style={styles.bookingCard}>
-                <View style={styles.timeContainer}>
-                  <Text style={styles.time}>
-                    {format(new Date(booking.scheduledAt), 'h:mm a')}
-                  </Text>
-                  <View style={styles.durationBadge}>
-                    <Text style={styles.durationText}>{booking.duration}min</Text>
-                  </View>
-                </View>
-                <View style={styles.bookingInfo}>
-                  <Text style={styles.serviceName}>{booking.service?.name}</Text>
-                  <View style={styles.customerRow}>
-                    <Text style={styles.customerName}>
-                      {booking.customer?.firstName} {booking.customer?.lastName}
+          selectedDayBookings.map((booking: Booking) => {
+            const isCompleted = booking.status === 'COMPLETED';
+            return (
+              <TouchableOpacity
+                key={booking.id}
+                onPress={() => {
+                  navigation.getParent()?.navigate('DashboardTab', {
+                    screen: 'JobDetail',
+                    params: {bookingId: booking.id},
+                  });
+                }}
+                activeOpacity={0.7}>
+                <Card style={[
+                  styles.bookingCard,
+                  isCompleted && styles.completedCard,
+                ]}>
+                  <View style={styles.timeContainer}>
+                    <Text style={[styles.time, isCompleted && styles.completedTime]}>
+                      {format(new Date(booking.scheduledAt), 'h:mm a')}
                     </Text>
-                    <ChatBadge bookingId={booking.id} />
+                    <View style={styles.durationBadge}>
+                      <Text style={styles.durationText}>{booking.duration}min</Text>
+                    </View>
+                    {isCompleted && (
+                      <View style={styles.completedIcon}>
+                        <Icon name="checkmark-circle" size={20} color={colors.success} />
+                      </View>
+                    )}
                   </View>
-                </View>
-                <View style={[styles.statusBadge, {backgroundColor: getStatusStyle(booking.status).backgroundColor}]}>
-                  <Text style={[styles.statusText, {color: getStatusStyle(booking.status).color}]}>
-                    {getStatusLabel(booking.status)}
-                  </Text>
-                </View>
-              </Card>
-            </TouchableOpacity>
-          ))
+                  <View style={styles.bookingInfo}>
+                    <Text style={styles.serviceName}>{booking.service?.name}</Text>
+                    <View style={styles.customerRow}>
+                      <Text style={styles.customerName}>
+                        {booking.customer?.firstName} {booking.customer?.lastName}
+                      </Text>
+                      <ChatBadge bookingId={booking.id} />
+                    </View>
+                  </View>
+                  <View style={[styles.statusBadge, {backgroundColor: getStatusStyle(booking.status).backgroundColor}]}>
+                    <Text style={[styles.statusText, {color: getStatusStyle(booking.status).color}]}>
+                      {getStatusLabel(booking.status)}
+                    </Text>
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            );
+          })
         )}
       </View>
     </>
@@ -325,7 +336,7 @@ export function CalendarScreen() {
         <View style={styles.emptyState}>
           <Icon name="time-outline" size={48} color={colors.textLight} />
           <Text style={styles.emptyText}>No booking history</Text>
-          <Text style={styles.emptySubtext}>Completed bookings will appear here</Text>
+          <Text style={styles.emptySubtext}>Cancelled and rejected bookings will appear here</Text>
         </View>
       ) : (
         historyBookings.map((booking: Booking) => (
@@ -572,6 +583,17 @@ const styles = StyleSheet.create({
   },
   bookingCard: {
     marginBottom: spacing.md,
+  },
+  completedCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.success,
+    backgroundColor: colors.success + '08',
+  },
+  completedTime: {
+    color: colors.success,
+  },
+  completedIcon: {
+    marginLeft: 'auto',
   },
   timeContainer: {
     flexDirection: 'row',
