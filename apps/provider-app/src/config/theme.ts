@@ -1,38 +1,38 @@
-// Masasia Design System - Warm Gold/Beige Premium Spa Theme
-// Style: Vibrant & Colorful (Grab/Gojek inspired)
+// Masasia Design System - Purple & Green Premium Spa Theme
+// Based on Masasia logo colors with gold accents
 
 export const colors = {
-  // Primary - Warm Gold (Luxury, Comfort)
-  primary: '#C9A962',
-  primaryDark: '#A68B4B',
-  primaryLight: '#E5D4A1',
-  primarySoft: '#F7F1E3',
+  // Primary - Masasia Purple (Brand Identity)
+  primary: '#7B4FA0',
+  primaryDark: '#5E3D7A',
+  primaryLight: '#A77DC4',
+  primarySoft: '#F3EDF7',
 
-  // Secondary - Warm Coral (Energy, Warmth)
-  secondary: '#E07A5F',
-  secondaryDark: '#C96A50',
-  secondaryLight: '#F0A995',
+  // Secondary - Warm Gold (Luxury, Premium)
+  secondary: '#C9A962',
+  secondaryDark: '#A68B4B',
+  secondaryLight: '#E5D4A1',
 
-  // Accent - Soft Sage (Balance, Calm)
-  accent: '#81B29A',
-  accentDark: '#6A9A82',
-  accentLight: '#A8D4BE',
+  // Accent - Masasia Green (Balance, Natural)
+  accent: '#6B8E4E',
+  accentDark: '#557239',
+  accentLight: '#8FB36E',
 
   // Status Colors
-  success: '#81B29A',
+  success: '#6B8E4E',
   warning: '#E9C46A',
   error: '#E07A5F',
   info: '#7BA7BC',
 
-  // Backgrounds - Cream Tones
-  background: '#FFFCF7',
-  surface: '#FFF9F0',
+  // Backgrounds - Cream Tones (from logo)
+  background: '#FFF8E7',
+  surface: '#FFFAF0',
   card: '#FFFFFF',
 
-  // Text - Warm Brown (No pure black)
-  text: '#2D2A26',
-  textSecondary: '#6B645A',
-  textLight: '#A39E94',
+  // Text - Deep Purple/Brown (No pure black)
+  text: '#2D2A33',
+  textSecondary: '#5E5A66',
+  textLight: '#9A95A3',
   textInverse: '#FFFFFF',
 
   // Borders & Dividers
@@ -40,25 +40,25 @@ export const colors = {
   divider: '#F5F0E8',
 
   // Overlay
-  overlay: 'rgba(45, 42, 38, 0.5)',
+  overlay: 'rgba(45, 42, 51, 0.5)',
 
   // Provider-specific colors
-  online: '#81B29A',
-  offline: '#A39E94',
+  online: '#6B8E4E',
+  offline: '#9A95A3',
   busy: '#E9C46A',
 };
 
 // Gradient Colors
 export const gradients = {
-  primary: ['#C9A962', '#E5D4A1'],
-  hero: ['#C9A962', '#F7F1E3', '#FFFCF7'],
+  primary: ['#7B4FA0', '#A77DC4'],
+  hero: ['#7B4FA0', '#F3EDF7', '#FFF8E7'],
   gold: ['#C9A962', '#D4B978', '#E5D4A1'],
-  warm: ['#E07A5F', '#F0A995'],
-  sage: ['#81B29A', '#A8D4BE'],
-  sunset: ['#C9A962', '#E07A5F'],
-  card: ['#FFFFFF', '#FFF9F0'],
+  purple: ['#7B4FA0', '#9B6FC0', '#A77DC4'],
+  green: ['#6B8E4E', '#8FB36E'],
+  sunset: ['#7B4FA0', '#C9A962'],
+  card: ['#FFFFFF', '#FFFAF0'],
   // Provider status gradients
-  online: ['#81B29A', '#A8D4BE'],
+  online: ['#6B8E4E', '#8FB36E'],
   earnings: ['#C9A962', '#E9C46A'],
 };
 
@@ -136,35 +136,43 @@ export const borderRadius = {
 
 export const shadows = {
   sm: {
-    shadowColor: '#2D2A26',
+    shadowColor: '#2D2A33',
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1,
   },
   md: {
-    shadowColor: '#2D2A26',
+    shadowColor: '#2D2A33',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
   },
   lg: {
-    shadowColor: '#2D2A26',
+    shadowColor: '#2D2A33',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 5,
   },
   xl: {
-    shadowColor: '#2D2A26',
+    shadowColor: '#2D2A33',
     shadowOffset: {width: 0, height: 8},
     shadowOpacity: 0.16,
     shadowRadius: 24,
     elevation: 8,
   },
-  // Gold glow for primary elements
+  // Purple glow for primary elements
   primaryGlow: {
+    shadowColor: '#7B4FA0',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  // Gold glow for secondary elements
+  goldGlow: {
     shadowColor: '#C9A962',
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
@@ -173,7 +181,7 @@ export const shadows = {
   },
   // Card shadow
   card: {
-    shadowColor: '#2D2A26',
+    shadowColor: '#2D2A33',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.06,
     shadowRadius: 12,

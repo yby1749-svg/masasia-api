@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: borderRadius.xxl,
   },
   headerWrapperOnline: {
-    backgroundColor: '#D4EDDA', // Light mint green when online
+    backgroundColor: '#E8F5E9', // Light green when online
   },
   header: {
     flexDirection: 'row',

@@ -28,6 +28,7 @@ import {
   borderRadius,
   shadows,
 } from '@config/theme';
+import {getServiceImageByName} from '../../assets/images/services';
 import type {HomeStackParamList} from '@navigation';
 import type {ProviderService, Review} from '@types';
 
@@ -147,7 +148,7 @@ export function ProviderDetailScreen() {
             <View style={styles.mapContainer}>
               <MapView
                 style={styles.map}
-                provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                provider={PROVIDER_GOOGLE}
                 initialRegion={{
                   latitude: provider.lastLatitude,
                   longitude: provider.lastLongitude,
@@ -196,17 +197,23 @@ export function ProviderDetailScreen() {
           <Text style={styles.sectionTitle}>Services</Text>
           {provider.services?.map((ps: ProviderService) => (
             <View key={ps.id} style={styles.serviceCard}>
-              <View style={styles.serviceInfo}>
-                <Text style={styles.serviceName}>{ps.service.name}</Text>
-                <Text style={styles.serviceDesc}>{ps.service.description}</Text>
-              </View>
-              <View style={styles.servicePrices}>
-                <Text style={styles.priceLabel}>
-                  90 min: ₱{ps.price90 || ps.price60}
-                </Text>
-                {ps.price120 && (
-                  <Text style={styles.priceLabel}>120 min: ₱{ps.price120}</Text>
-                )}
+              <Image
+                source={{uri: getServiceImageByName(ps.service.name)}}
+                style={styles.serviceImage}
+              />
+              <View style={styles.serviceContent}>
+                <View style={styles.serviceInfo}>
+                  <Text style={styles.serviceName}>{ps.service.name}</Text>
+                  <Text style={styles.serviceDesc}>{ps.service.description}</Text>
+                </View>
+                <View style={styles.servicePrices}>
+                  <Text style={styles.priceLabel}>
+                    90 min: ₱{ps.price90 || ps.price60}
+                  </Text>
+                  {ps.price120 && (
+                    <Text style={styles.priceLabel}>120 min: ₱{ps.price120}</Text>
+                  )}
+                </View>
               </View>
             </View>
           ))}
@@ -322,12 +329,21 @@ const styles = StyleSheet.create({
   },
   serviceCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     backgroundColor: colors.card,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
     ...shadows.sm,
+  },
+  serviceImage: {
+    width: 80,
+    height: 80,
+  },
+  serviceContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.md,
   },
   serviceInfo: {
     flex: 1,

@@ -1,14 +1,28 @@
-import React from 'react';
-import {View, Text, StyleSheet, ScrollView, RefreshControl} from 'react-native';
+import React, {useState} from 'react';
+import {View, Text, StyleSheet, ScrollView, RefreshControl, Image} from 'react-native';
 import {useQuery} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import {Card} from '@components';
 import {providersApi} from '@api';
 import {colors, typography, spacing, borderRadius} from '@config/theme';
+import {getServiceImageByName} from '../../assets/images/services';
 import type {ProviderService} from '@types';
 
+const getServiceIcon = (serviceName: string) => {
+  const name = serviceName.toLowerCase();
+  if (name.includes('thai')) return 'body-outline';
+  if (name.includes('swedish')) return 'leaf-outline';
+  if (name.includes('deep')) return 'fitness-outline';
+  if (name.includes('hot stone')) return 'flame-outline';
+  if (name.includes('aromatherapy')) return 'flower-outline';
+  if (name.includes('foot') || name.includes('reflexology')) return 'footsteps-outline';
+  return 'hand-left-outline';
+};
+
 export function ServicesScreen() {
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
   const {
     data: services,
     isLoading,
@@ -20,6 +34,10 @@ export function ServicesScreen() {
       return response.data.data;
     },
   });
+
+  const handleImageError = (serviceId: string) => {
+    setImageErrors(prev => ({...prev, [serviceId]: true}));
+  };
 
   return (
     <View style={styles.container}>
@@ -48,11 +66,19 @@ export function ServicesScreen() {
               <Card key={service.id} style={styles.serviceCard}>
                 <View style={styles.serviceHeader}>
                   <View style={styles.serviceIcon}>
-                    <Icon
-                      name="hand-left-outline"
-                      size={24}
-                      color={colors.primary}
-                    />
+                    {!imageErrors[service.id] ? (
+                      <Image
+                        source={{uri: getServiceImageByName(service.service.name)}}
+                        style={styles.serviceImage}
+                        onError={() => handleImageError(service.id)}
+                      />
+                    ) : (
+                      <Icon
+                        name={getServiceIcon(service.service.name)}
+                        size={24}
+                        color={colors.primary}
+                      />
+                    )}
                   </View>
                   <View style={styles.serviceInfo}>
                     <Text style={styles.serviceName}>
@@ -148,12 +174,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   serviceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary + '20',
+    width: 56,
+    height: 56,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primarySoft,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  serviceImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   serviceInfo: {
     flex: 1,
