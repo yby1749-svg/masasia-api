@@ -183,7 +183,9 @@ export function ShopWalletScreen() {
 
         {/* Transaction History */}
         <View style={styles.historySection}>
-          <Text style={styles.sectionTitle}>Transaction History</Text>
+          <View style={styles.historyHeader}>
+            <Text style={styles.sectionTitle}>Transaction History</Text>
+          </View>
           {transactions.length === 0 ? (
             <View style={styles.emptyState}>
               <Icon name="receipt-outline" size={48} color={colors.textLight} />
@@ -381,10 +383,15 @@ const styles = StyleSheet.create({
   historySection: {
     marginTop: spacing.md,
   },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
   sectionTitle: {
     ...typography.h3,
     color: colors.text,
-    marginBottom: spacing.md,
   },
   emptyState: {
     alignItems: 'center',
