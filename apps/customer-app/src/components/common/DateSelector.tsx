@@ -17,7 +17,7 @@ export function DateSelector({
 }: DateSelectorProps) {
   const today = new Date();
   const dates = Array.from({length: daysToShow}, (_, i) =>
-    addDays(today, i + 1),
+    addDays(today, i),
   );
 
   const isSelected = (date: Date) => {

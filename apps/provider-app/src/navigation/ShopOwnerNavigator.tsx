@@ -191,6 +191,12 @@ export function ShopOwnerTabNavigator() {
           tabBarLabel: 'Profile',
           tabBarIcon: ({focused}) => <TabIcon name="Profile" focused={focused} />,
         }}
+        listeners={({navigation}) => ({
+          tabPress: () => {
+            // Reset the stack to ShopProfile when tab is pressed
+            navigation.navigate('ShopProfileTab', {screen: 'ShopProfile'});
+          },
+        })}
       />
     </Tab.Navigator>
   );

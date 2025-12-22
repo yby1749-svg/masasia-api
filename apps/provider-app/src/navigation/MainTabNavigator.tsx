@@ -107,6 +107,12 @@ export function MainTabNavigator() {
             <Icon name="person-outline" size={size} color={color} />
           ),
         }}
+        listeners={({navigation}) => ({
+          tabPress: () => {
+            // Reset the stack to Profile when tab is pressed
+            navigation.navigate('ProfileTab', {screen: 'Profile'});
+          },
+        })}
       />
     </Tab.Navigator>
   );

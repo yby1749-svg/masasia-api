@@ -394,10 +394,7 @@ export function JobDashboardScreen() {
               </View>
             </TouchableOpacity>
             <View style={styles.onlineToggle}>
-              <View style={[
-                styles.onlineIndicator,
-                isOnline ? styles.onlineIndicatorActive : styles.onlineIndicatorInactive
-              ]}>
+              <View style={styles.onlineIndicator}>
                 <View style={[
                   styles.onlineDot,
                   isOnline ? styles.onlineDotActive : styles.onlineDotInactive
@@ -629,19 +626,7 @@ const styles = StyleSheet.create({
   onlineIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    gap: spacing.sm,
-    borderWidth: 2,
-  },
-  onlineIndicatorActive: {
-    backgroundColor: colors.card,
-    borderColor: colors.success,
-  },
-  onlineIndicatorInactive: {
-    backgroundColor: colors.error + '15',
-    borderColor: colors.error,
+    gap: spacing.xs,
   },
   onlineDot: {
     width: 10,
