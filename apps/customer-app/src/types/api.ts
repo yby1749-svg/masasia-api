@@ -147,7 +147,9 @@ export interface BookingRequest {
 
 export type BookingStatus =
   | 'PENDING'
+  | 'ACCEPTED'
   | 'CONFIRMED'
+  | 'REJECTED'
   | 'PROVIDER_ASSIGNED'
   | 'PROVIDER_EN_ROUTE'
   | 'PROVIDER_ARRIVED'
@@ -203,7 +205,7 @@ export interface PaginatedResponse<T> {
 
 export interface Notification {
   id: string;
-  userId: string;
+  userId?: string;
   type: string;
   title: string;
   body: string;
