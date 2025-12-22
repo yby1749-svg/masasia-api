@@ -21,7 +21,7 @@ type NavigationProp = NativeStackNavigationProp<ShopDashboardStackParamList>;
 
 export function ShopDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const {unreadCount} = useNotificationStore();
+  const {unreadCount, fetchUnreadCount} = useNotificationStore();
   const {
     shop,
     earningsSummary,
@@ -37,7 +37,7 @@ export function ShopDashboardScreen() {
   }, []);
 
   const loadData = async () => {
-    await Promise.all([fetchShop(), fetchEarningsSummary(), fetchTherapists()]);
+    await Promise.all([fetchShop(), fetchEarningsSummary(), fetchTherapists(), fetchUnreadCount()]);
   };
 
   const formatCurrency = (amount: number) => {
@@ -72,7 +72,7 @@ export function ShopDashboardScreen() {
             </View>
             <TouchableOpacity
               style={styles.notificationButton}
-              onPress={() => (navigation as any).navigate('ProfileTab', {screen: 'Notifications'})}>
+              onPress={() => (navigation as any).navigate('ShopProfileTab', {screen: 'Notifications'})}>
               <View style={styles.notificationIconContainer}>
                 <Icon name="notifications" size={22} color={colors.text} />
                 {unreadCount > 0 && (

@@ -317,4 +317,5 @@ export type ShopProfileStackParamList = {
   ShopProfile: undefined;
   ShopSettings: undefined;
   ShopBankAccount: undefined;
+  Notifications: undefined;
 };

@@ -12,6 +12,13 @@ export const getNotifications = async (req: Request, res: Response, next: NextFu
   } catch (error) { next(error); }
 };
 
+export const getUnreadCount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const count = await notificationService.getUnreadCount(req.user!.id);
+    res.json({ success: true, data: { count } });
+  } catch (error) { next(error); }
+};
+
 export const markAsRead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     await notificationService.markAsRead(req.user!.id, req.params.notificationId);

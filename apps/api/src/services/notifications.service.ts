@@ -31,6 +31,10 @@ class NotificationService {
     await prisma.notification.updateMany({ where: { userId, isRead: false }, data: { isRead: true, readAt: new Date() } });
   }
 
+  async getUnreadCount(userId: string): Promise<number> {
+    return prisma.notification.count({ where: { userId, isRead: false } });
+  }
+
   async createNotification(userId: string, type: string, title: string, body: string, data?: Prisma.InputJsonValue) {
     return prisma.notification.create({ data: { userId, type: type as NotificationType, title, body, data } });
   }

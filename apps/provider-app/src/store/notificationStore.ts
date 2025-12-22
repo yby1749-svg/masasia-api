@@ -1,4 +1,5 @@
 import {create} from 'zustand';
+import {notificationsApi} from '@api';
 import type {Notification} from '@types';
 
 interface NotificationState {
@@ -13,6 +14,7 @@ interface NotificationState {
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   clearNotifications: () => void;
+  fetchUnreadCount: () => Promise<void>;
 }
 
 export const useNotificationStore = create<NotificationState>((set, _get) => ({
@@ -22,6 +24,15 @@ export const useNotificationStore = create<NotificationState>((set, _get) => ({
   isLoading: false,
 
   setFcmToken: (token: string) => set({fcmToken: token}),
+
+  fetchUnreadCount: async () => {
+    try {
+      const response = await notificationsApi.getUnreadCount();
+      set({unreadCount: response.data.data.count});
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  },
 
   setNotifications: (notifications: Notification[]) =>
     set({

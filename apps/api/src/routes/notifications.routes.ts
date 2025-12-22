@@ -13,6 +13,9 @@ router.use(authenticate);
 // Get notifications
 router.get('/', notificationController.getNotifications);
 
+// Get unread count
+router.get('/unread-count', notificationController.getUnreadCount);
+
 // Mark as read
 router.patch('/:notificationId/read', notificationController.markAsRead);
 

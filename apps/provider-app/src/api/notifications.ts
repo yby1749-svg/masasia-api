@@ -15,6 +15,9 @@ export const notificationsApi = {
   getNotifications: (params?: {unreadOnly?: boolean; limit?: number}) =>
     apiClient.get<{data: NotificationItem[]}>('/notifications', {params}),
 
+  getUnreadCount: () =>
+    apiClient.get<{data: {count: number}}>('/notifications/unread-count'),
+
   markAsRead: (notificationId: string) =>
     apiClient.patch(`/notifications/${notificationId}/read`),
 
