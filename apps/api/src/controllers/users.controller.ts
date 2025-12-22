@@ -21,8 +21,18 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
 
 export const uploadAvatar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // TODO: Handle file upload with multer
-    res.json({ success: true, message: 'Avatar uploaded' });
+    if (!req.file) {
+      res.status(400).json({ success: false, error: 'No file uploaded' });
+      return;
+    }
+
+    // Create avatar URL from uploaded file
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+    // Update user's avatar in database
+    const user = await userService.updateProfile(req.user!.id, { avatarUrl });
+
+    res.json({ success: true, data: { avatarUrl: user.avatarUrl } });
   } catch (error) { next(error); }
 };
 

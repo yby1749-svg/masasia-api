@@ -3,10 +3,36 @@
 // ============================================================================
 
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { authenticate } from '../middleware/auth.js';
 import * as userController from '../controllers/users.controller.js';
 
 const router = Router();
+
+// Setup multer for avatar uploads
+const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${req.user?.id}-${Date.now()}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 // All routes require authentication
 router.use(authenticate);
@@ -80,7 +106,7 @@ router.patch('/me', userController.updateProfile);
  *       200:
  *         description: Avatar uploaded
  */
-router.post('/me/avatar', userController.uploadAvatar);
+router.post('/me/avatar', upload.single('avatar'), userController.uploadAvatar);
 
 /**
  * @swagger

@@ -1,20 +1,28 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  Image,
+  ActionSheetIOS,
+  Alert,
 } from 'react-native';
 import {useForm, Controller} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {z} from 'zod';
 import {useMutation} from '@tanstack/react-query';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 import {userApi} from '@api';
 import {Button, Input} from '@components';
 import {useAuthStore, useUIStore} from '@store';
-import {colors, spacing} from '@config/theme';
+import {colors, spacing, typography} from '@config/theme';
+import {SOCKET_URL} from '@config/constants'; // Base URL without /api/v1
 
 const profileSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
@@ -30,6 +38,9 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export function EditProfileScreen() {
   const {user, updateUser} = useAuthStore();
   const {showSuccess, showError} = useUIStore();
+  const [avatarUri, setAvatarUri] = useState<string | null>(
+    user?.avatarUrl ? `${SOCKET_URL}${user.avatarUrl}` : null,
+  );
 
   const {
     control,
@@ -64,9 +75,81 @@ export function EditProfileScreen() {
     },
   });
 
+  const avatarMutation = useMutation({
+    mutationFn: async (uri: string) => {
+      const formData = new FormData();
+      formData.append('avatar', {
+        uri,
+        type: 'image/jpeg',
+        name: 'avatar.jpg',
+      } as any);
+      const response = await userApi.uploadAvatar(formData);
+      return response.data.data;
+    },
+    onSuccess: data => {
+      const newAvatarUrl = `${SOCKET_URL}${data.avatarUrl}`;
+      setAvatarUri(newAvatarUrl);
+      updateUser({...user, avatarUrl: data.avatarUrl});
+      showSuccess('Photo Updated', 'Your profile photo has been updated');
+    },
+    onError: () => {
+      showError('Upload Failed', 'Unable to upload photo');
+    },
+  });
+
+  const handlePickImage = () => {
+    const options = ['Take Photo', 'Choose from Library', 'Cancel'];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 2,
+        },
+        buttonIndex => {
+          if (buttonIndex === 0) {
+            openCamera();
+          } else if (buttonIndex === 1) {
+            openLibrary();
+          }
+        },
+      );
+    } else {
+      Alert.alert('Change Photo', 'Select an option', [
+        {text: 'Take Photo', onPress: openCamera},
+        {text: 'Choose from Library', onPress: openLibrary},
+        {text: 'Cancel', style: 'cancel'},
+      ]);
+    }
+  };
+
+  const openCamera = () => {
+    launchCamera(
+      {mediaType: 'photo', quality: 0.8, maxWidth: 500, maxHeight: 500},
+      response => {
+        if (response.assets?.[0]?.uri) {
+          avatarMutation.mutate(response.assets[0].uri);
+        }
+      },
+    );
+  };
+
+  const openLibrary = () => {
+    launchImageLibrary(
+      {mediaType: 'photo', quality: 0.8, maxWidth: 500, maxHeight: 500},
+      response => {
+        if (response.assets?.[0]?.uri) {
+          avatarMutation.mutate(response.assets[0].uri);
+        }
+      },
+    );
+  };
+
   const onSubmit = (data: ProfileFormData) => {
     mutation.mutate(data);
   };
+
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase();
 
   return (
     <KeyboardAvoidingView
@@ -75,6 +158,28 @@ export function EditProfileScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
+        {/* Avatar Section */}
+        <View style={styles.avatarSection}>
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={handlePickImage}
+            disabled={avatarMutation.isPending}>
+            {avatarUri ? (
+              <Image source={{uri: avatarUri}} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitials}>{initials || 'U'}</Text>
+              </View>
+            )}
+            <View style={styles.cameraButton}>
+              <Icon name="camera" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.changePhotoText}>
+            {avatarMutation.isPending ? 'Uploading...' : 'Tap to change photo'}
+          </Text>
+        </View>
+
         <View style={styles.section}>
           <Controller
             control={control}
@@ -190,6 +295,50 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.surface,
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    ...typography.h1,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.background,
+  },
+  changePhotoText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
   },
   section: {
     marginBottom: spacing.lg,

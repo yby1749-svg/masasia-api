@@ -61,6 +61,9 @@ if (process.env.NODE_ENV === 'production') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Static files (for uploaded avatars)
+app.use('/uploads', express.static('uploads'));
+
 // Request logging (development)
 if (process.env.NODE_ENV === 'development') {
   app.use((req: Request, res: Response, next: NextFunction) => {

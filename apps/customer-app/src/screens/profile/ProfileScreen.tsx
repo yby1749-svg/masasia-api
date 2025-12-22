@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
@@ -20,6 +21,7 @@ import {
   borderRadius,
   shadows,
 } from '@config/theme';
+import {SOCKET_URL} from '@config/constants';
 import type {ProfileStackParamList} from '@navigation';
 
 type NavigationProp = NativeStackNavigationProp<
@@ -30,6 +32,9 @@ type NavigationProp = NativeStackNavigationProp<
 export function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const {user, logout} = useAuthStore();
+
+  const avatarUrl = user?.avatarUrl ? `${SOCKET_URL}${user.avatarUrl}` : null;
+  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase();
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -69,9 +74,13 @@ export function ProfileScreen() {
       <ScrollView>
         {/* Profile Header */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Icon name="person" size={48} color={colors.textLight} />
-          </View>
+          {avatarUrl ? (
+            <Image source={{uri: avatarUrl}} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarInitials}>{initials || 'U'}</Text>
+            </View>
+          )}
           <Text style={styles.name}>
             {user?.firstName} {user?.lastName}
           </Text>
@@ -119,11 +128,23 @@ const styles = StyleSheet.create({
   avatar: {
     width: 96,
     height: 96,
-    borderRadius: borderRadius.full,
+    borderRadius: 48,
     backgroundColor: colors.surface,
+    marginBottom: spacing.md,
+  },
+  avatarPlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  avatarInitials: {
+    ...typography.h1,
+    color: '#fff',
+    fontWeight: '600',
   },
   name: {
     ...typography.h2,
