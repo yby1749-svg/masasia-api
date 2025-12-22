@@ -48,12 +48,12 @@ export function JobDashboardScreen() {
   } = useJobStore();
   const {isOnline, isUpdating, goOnline, goOffline} = useStatusStore();
 
-  // Check if a job is ready to start (within 30 minutes of scheduled time)
+  // Check if a job is ready to start (within 1 hour of scheduled time)
   const isJobReadyToStart = (job: Booking): boolean => {
     if (job.status !== 'ACCEPTED') return false;
     const scheduledTime = new Date(job.scheduledAt);
     const now = new Date();
-    const startWindow = subMinutes(scheduledTime, 30);
+    const startWindow = subMinutes(scheduledTime, 60); // 1 hour before
     const endWindow = addMinutes(scheduledTime, job.duration || 120);
     return isWithinInterval(now, {start: startWindow, end: endWindow});
   };
