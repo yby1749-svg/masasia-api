@@ -205,10 +205,13 @@ export function JobDetailScreen() {
                   text1: 'Service Completed',
                   text2: 'Great job! Check your schedule.',
                 });
-                // Navigate to Schedule tab to show completed job
-                navigation.getParent()?.navigate('ScheduleTab', {
-                  screen: 'Calendar',
-                });
+                // Go back first to clear the stack, then navigate to Schedule tab
+                navigation.goBack();
+                setTimeout(() => {
+                  navigation.getParent()?.navigate('ScheduleTab', {
+                    screen: 'Calendar',
+                  });
+                }, 100);
               } catch {
                 Toast.show({
                   type: 'error',
