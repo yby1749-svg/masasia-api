@@ -93,23 +93,6 @@ export function ProfileScreen() {
           </Text>
         </View>
         {provider?.bio && <Text style={styles.bio}>{provider.bio}</Text>}
-
-        {/* Status Badge */}
-        <View
-          style={[
-            styles.statusBadge,
-            provider?.isOnline ? styles.onlineBadge : styles.offlineBadge,
-          ]}>
-          <View
-            style={[
-              styles.statusDot,
-              provider?.isOnline ? styles.onlineDot : styles.offlineDot,
-            ]}
-          />
-          <Text style={styles.statusText}>
-            {provider?.isOnline ? 'Online' : 'Offline'}
-          </Text>
-        </View>
       </View>
 
       {/* Stats */}
@@ -216,36 +199,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.md,
     paddingHorizontal: spacing.lg,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  onlineBadge: {
-    backgroundColor: colors.success + '20',
-  },
-  offlineBadge: {
-    backgroundColor: colors.textLight + '20',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  onlineDot: {
-    backgroundColor: colors.success,
-  },
-  offlineDot: {
-    backgroundColor: colors.textLight,
-  },
-  statusText: {
-    ...typography.bodySmall,
-    fontWeight: '500',
   },
   statsContainer: {
     flexDirection: 'row',
