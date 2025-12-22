@@ -8,11 +8,13 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {colors} from '@config/theme';
+import {getImageUrl} from '@config/constants';
 import {useShopOwnerStore} from '@store/shopStore';
 import {Button} from '@components/ui';
 import type {ShopTherapistsStackParamList} from '@types';
@@ -225,11 +227,18 @@ export function ShopTherapistsScreen() {
 
   const renderTherapist = ({item}: {item: ShopTherapist}) => (
     <View style={styles.itemCard}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {item.user?.firstName?.charAt(0) || 'T'}
-        </Text>
-      </View>
+      {item.user?.avatarUrl ? (
+        <Image
+          source={{uri: getImageUrl(item.user.avatarUrl)}}
+          style={styles.avatarImage}
+        />
+      ) : (
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {item.user?.firstName?.charAt(0) || 'T'}
+          </Text>
+        </View>
+      )}
       <View style={styles.itemInfo}>
         <Text style={styles.itemName}>
           {item.user?.firstName} {item.user?.lastName}
@@ -604,6 +613,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     marginRight: 12,
   },
   avatarPending: {
