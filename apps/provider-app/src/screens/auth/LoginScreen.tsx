@@ -49,6 +49,7 @@ export function LoginScreen() {
     formState: {errors},
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    mode: 'onSubmit',
     defaultValues: {
       email: '',
       password: '',

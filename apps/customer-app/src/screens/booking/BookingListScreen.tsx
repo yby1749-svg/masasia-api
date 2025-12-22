@@ -43,7 +43,7 @@ const getStatusColor = (status: string) => {
       return colors.warning;
     case 'ACCEPTED':
     case 'CONFIRMED':
-      return colors.info;
+      return '#F57C00'; // Orange for accepted
     case 'IN_PROGRESS':
     case 'PROVIDER_EN_ROUTE':
     case 'PROVIDER_ARRIVED':
@@ -121,9 +121,14 @@ export function BookingListScreen() {
   const historyBookings = data?.filter((b: Booking) => HISTORY_STATUSES.includes(b.status)) || [];
   const displayedBookings = activeTab === 'active' ? activeBookings : historyBookings;
 
-  const renderBooking = ({item}: {item: Booking}) => (
+  const renderBooking = ({item}: {item: Booking}) => {
+    const isAccepted = item.status === 'ACCEPTED';
+    return (
     <TouchableOpacity
-      style={styles.bookingCard}
+      style={[
+        styles.bookingCard,
+        isAccepted && styles.acceptedCard,
+      ]}
       onPress={() =>
         navigation.navigate('BookingDetail', {bookingId: item.id})
       }>
@@ -165,6 +170,7 @@ export function BookingListScreen() {
           />
           <Text style={styles.infoText} numberOfLines={1}>
             {item.addressText}
+            {item.addressNotes ? `  ${item.addressNotes}` : ''}
           </Text>
         </View>
       </View>
@@ -184,6 +190,7 @@ export function BookingListScreen() {
       </View>
     </TouchableOpacity>
   );
+  };
 
   if (isLoading) {
     return (
@@ -287,6 +294,11 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
     ...shadows.sm,
+  },
+  acceptedCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#F57C00',
+    backgroundColor: '#FFF3E0',
   },
   bookingHeader: {
     flexDirection: 'row',

@@ -27,7 +27,7 @@ async function sendOneHourReminders() {
           lte: oneHourFromNow,
         },
         status: {
-          in: ['ACCEPTED', 'CONFIRMED'],
+          in: ['ACCEPTED'],
         },
         providerId: { not: null },
       },
@@ -37,11 +37,7 @@ async function sendOneHourReminders() {
             user: true,
           },
         },
-        customer: {
-          include: {
-            user: true,
-          },
-        },
+        customer: true,
         service: true,
       },
     });
@@ -56,12 +52,12 @@ async function sendOneHourReminders() {
       const customer = booking.customer;
       const service = booking.service;
 
-      if (!provider?.user || !customer?.user || !service) {
+      if (!provider?.user || !customer || !service) {
         continue;
       }
 
       const scheduledTime = format(new Date(booking.scheduledAt), 'h:mm a');
-      const customerName = `${customer.user.firstName} ${customer.user.lastName}`;
+      const customerName = `${customer.firstName} ${customer.lastName}`;
 
       // Send notification to provider
       await sendPushToUser(provider.user.id, {
@@ -129,7 +125,7 @@ async function sendFifteenMinuteReminders() {
           lte: fifteenMinutesFromNow,
         },
         status: {
-          in: ['ACCEPTED', 'CONFIRMED'],
+          in: ['ACCEPTED'],
         },
         providerId: { not: null },
       },
@@ -139,11 +135,7 @@ async function sendFifteenMinuteReminders() {
             user: true,
           },
         },
-        customer: {
-          include: {
-            user: true,
-          },
-        },
+        customer: true,
         service: true,
       },
     });
@@ -158,11 +150,11 @@ async function sendFifteenMinuteReminders() {
       const customer = booking.customer;
       const service = booking.service;
 
-      if (!provider?.user || !customer?.user || !service) {
+      if (!provider?.user || !customer || !service) {
         continue;
       }
 
-      const customerName = `${customer.user.firstName} ${customer.user.lastName}`;
+      const customerName = `${customer.firstName} ${customer.lastName}`;
 
       await sendPushToUser(provider.user.id, {
         title: 'Starting Soon - 15 Minutes!',

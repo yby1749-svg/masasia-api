@@ -71,6 +71,15 @@ export function BookingDetailScreen() {
     }, [refetch, refetchUnread])
   );
 
+  // Navigate to booking list when provider accepts
+  useEffect(() => {
+    if (booking?.status === 'ACCEPTED') {
+      showSuccess('Booking Confirmed!', 'Your therapist has accepted the booking');
+      // Navigate to My Bookings to show the accepted booking
+      navigation.navigate('BookingList', {tab: 'active'});
+    }
+  }, [booking?.status]);
+
   const cancelMutation = useMutation({
     mutationFn: async (reason: string) => {
       await bookingsApi.cancelBooking(bookingId, reason);
@@ -269,7 +278,10 @@ export function BookingDetailScreen() {
               size={20}
               color={colors.textSecondary}
             />
-            <Text style={styles.rowText}>{booking.addressText}</Text>
+            <Text style={styles.rowText}>
+              {booking.addressText}
+              {booking.addressNotes ? `  ${booking.addressNotes}` : ''}
+            </Text>
           </View>
         </View>
       </View>

@@ -138,6 +138,7 @@ export interface BookingRequest {
   duration: 90 | 120;
   scheduledAt: string;
   addressText: string;
+  addressNotes?: string;
   latitude: number;
   longitude: number;
   customerNotes?: string;

@@ -90,9 +90,10 @@ export function BookingSummaryStep() {
         duration: draft.duration,
         scheduledAt,
         addressText,
+        addressNotes: draft.addressNotes || undefined,
         latitude: draft.latitude || draft.address?.latitude || 14.5995,
         longitude: draft.longitude || draft.address?.longitude || 120.9842,
-        customerNotes: draft.addressNotes || notes.trim() || undefined,
+        customerNotes: notes.trim() || undefined,
         paymentMethod: draft.paymentMethod,
       });
 
@@ -246,15 +247,10 @@ export function BookingSummaryStep() {
             <Icon name="location-outline" size={20} color={colors.primary} />
             <Text style={styles.cardTitle}>Location</Text>
           </View>
-          <Text style={styles.cardValue}>{addressDisplay}</Text>
-          {draft.addressNotes && (
-            <View style={styles.addressDetails}>
-              <View style={styles.addressDetailRow}>
-                <Icon name="document-text-outline" size={16} color={colors.textSecondary} />
-                <Text style={styles.addressDetailText}>{draft.addressNotes}</Text>
-              </View>
-            </View>
-          )}
+          <Text style={styles.cardValue}>
+            {addressDisplay}
+            {draft.addressNotes ? `  ${draft.addressNotes}` : ''}
+          </Text>
         </View>
 
         {/* Payment Method Card */}

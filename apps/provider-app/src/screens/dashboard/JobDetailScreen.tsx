@@ -398,15 +398,11 @@ export function JobDetailScreen() {
             <View style={styles.addressDetails}>
               <Text style={styles.addressStreet}>
                 {booking.addressText || booking.address?.street}
+                {(booking.addressNotes || booking.address?.notes) ? `  ${booking.addressNotes || booking.address?.notes}` : ''}
               </Text>
               {booking.address?.city && (
                 <Text style={styles.addressCity}>
                   {booking.address?.city}, {booking.address?.province}
-                </Text>
-              )}
-              {(booking.addressNotes || booking.address?.notes) && (
-                <Text style={styles.addressNotes}>
-                  📍 {booking.addressNotes || booking.address?.notes}
                 </Text>
               )}
             </View>

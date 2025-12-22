@@ -158,12 +158,8 @@ export function JobDashboardScreen() {
             <View style={styles.locationInfo}>
               <Text style={styles.detailText} numberOfLines={2}>
                 {job.addressText || `${job.address?.street}, ${job.address?.city}`}
+                {(job.addressNotes || job.address?.notes) ? `  ${job.addressNotes || job.address?.notes}` : ''}
               </Text>
-              {(job.addressNotes || job.address?.notes) && (
-                <Text style={styles.locationNotes} numberOfLines={2}>
-                  📍 {job.addressNotes || job.address?.notes}
-                </Text>
-              )}
             </View>
           </View>
         </View>
@@ -288,6 +284,7 @@ export function JobDashboardScreen() {
               <Icon name="location" size={16} color="#FFFFFF" />
               <Text style={styles.activeDetailText}>
                 {readyToStartJob.addressText || `${readyToStartJob.address?.street}, ${readyToStartJob.address?.city}`}
+                {(readyToStartJob.addressNotes || readyToStartJob.address?.notes) ? `  ${readyToStartJob.addressNotes || readyToStartJob.address?.notes}` : ''}
               </Text>
             </View>
             <View style={styles.readyActionRow}>
@@ -354,6 +351,7 @@ export function JobDashboardScreen() {
               <Icon name="location" size={16} color={colors.textInverse} />
               <Text style={styles.activeDetailText}>
                 {activeJob.addressText || `${activeJob.address?.street}, ${activeJob.address?.city}`}
+                {(activeJob.addressNotes || activeJob.address?.notes) ? `  ${activeJob.addressNotes || activeJob.address?.notes}` : ''}
               </Text>
             </View>
           </LinearGradient>
