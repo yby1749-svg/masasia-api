@@ -78,9 +78,9 @@ export function LoginScreen() {
           <View style={styles.heroContent}>
             <View style={styles.logoContainer}>
               <Image
-                source={require('../../assets/home_icon.png')}
+                source={require('../../assets/logo_icon.png')}
                 style={styles.logoImage}
-                resizeMode="contain"
+                resizeMode="cover"
               />
             </View>
             <Text style={styles.appName}>Masasia</Text>
@@ -182,11 +182,19 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginBottom: spacing.md,
+    backgroundColor: colors.card,
+    borderRadius: 28,
+    padding: 4,
+    shadowColor: colors.text,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   logoImage: {
-    width: 100,
-    height: 100,
-    borderRadius: borderRadius.xl,
+    width: 140,
+    height: 140,
+    borderRadius: 24,
   },
   appName: {
     ...typography.h1,
