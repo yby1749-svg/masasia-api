@@ -417,7 +417,7 @@ class BookingService {
     // Notify shop owner if therapist is affiliated with a shop
     if (provider.shopId && provider.shop) {
       const shopOwner = await prisma.user.findFirst({
-        where: { shopOwner: { shopId: provider.shopId } },
+        where: { ownedShop: { id: provider.shopId } },
       });
       if (shopOwner) {
         const therapistName = `${(await prisma.user.findUnique({ where: { id: userId } }))?.firstName || 'Therapist'}`;
@@ -593,7 +593,7 @@ class BookingService {
     // Notify shop owner when service is completed
     if (status === 'COMPLETED' && booking.shopId) {
       const shopOwner = await prisma.user.findFirst({
-        where: { shopOwner: { shopId: booking.shopId } },
+        where: { ownedShop: { id: booking.shopId } },
       });
       if (shopOwner) {
         const therapist = await prisma.user.findUnique({ where: { id: userId } });
