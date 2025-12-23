@@ -29,7 +29,6 @@ async function sendOneHourReminders() {
         status: {
           in: ['ACCEPTED'],
         },
-        providerId: { not: null },
       },
       include: {
         provider: {
@@ -127,7 +126,6 @@ async function sendFifteenMinuteReminders() {
         status: {
           in: ['ACCEPTED'],
         },
-        providerId: { not: null },
       },
       include: {
         provider: {

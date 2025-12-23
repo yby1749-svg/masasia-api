@@ -6,11 +6,21 @@ import Config from 'react-native-config';
 
 // Configure Google Sign-In
 export const configureGoogleSignIn = () => {
-  GoogleSignin.configure({
-    webClientId: Config.GOOGLE_WEB_CLIENT_ID,
-    offlineAccess: true,
-    iosClientId: Config.GOOGLE_IOS_CLIENT_ID,
-  });
+  try {
+    // Only configure if client IDs are available
+    if (Config.GOOGLE_WEB_CLIENT_ID) {
+      GoogleSignin.configure({
+        webClientId: Config.GOOGLE_WEB_CLIENT_ID,
+        offlineAccess: false,
+        iosClientId: Config.GOOGLE_IOS_CLIENT_ID,
+      });
+      console.log('[GoogleSignIn] Configured successfully');
+    } else {
+      console.log('[GoogleSignIn] Not configured - missing GOOGLE_WEB_CLIENT_ID');
+    }
+  } catch (error) {
+    console.log('[GoogleSignIn] Configuration error:', error);
+  }
 };
 
 export interface GoogleSignInResult {
@@ -23,6 +33,11 @@ export interface GoogleSignInResult {
 }
 
 export const signInWithGoogle = async (): Promise<GoogleSignInResult> => {
+  // Check if Google Sign-In is configured
+  if (!Config.GOOGLE_WEB_CLIENT_ID) {
+    throw new Error('Google Sign-In is not configured');
+  }
+
   try {
     await GoogleSignin.hasPlayServices();
     const response = await GoogleSignin.signIn();
