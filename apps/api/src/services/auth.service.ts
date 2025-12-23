@@ -321,6 +321,96 @@ class AuthService {
 
     await redis.del(`email-verify:${token}`);
   }
+
+  // Google OAuth login/register
+  async googleAuth(idToken: string) {
+    // Verify the Google ID token
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    if (!googleClientId) {
+      throw new AppError('Google Sign-In is not configured', 500);
+    }
+
+    // Verify token with Google
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`
+    );
+
+    if (!response.ok) {
+      throw new AppError('Invalid Google token', 401);
+    }
+
+    const googleUser = await response.json();
+
+    // Verify the token was intended for our app
+    if (googleUser.aud !== googleClientId) {
+      throw new AppError('Invalid Google token audience', 401);
+    }
+
+    const { email, given_name, family_name, picture } = googleUser;
+
+    if (!email) {
+      throw new AppError('Email not provided by Google', 400);
+    }
+
+    // Check if user exists
+    let user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (user) {
+      // User exists - check status
+      if (user.status !== 'ACTIVE') {
+        throw new AppError('Account is not active', 401);
+      }
+    } else {
+      // Create new user
+      user = await prisma.user.create({
+        data: {
+          email,
+          phone: '', // Google doesn't provide phone
+          passwordHash: '', // No password for Google users
+          firstName: given_name || '',
+          lastName: family_name || '',
+          avatarUrl: picture || null,
+          emailVerified: true, // Google email is verified
+          role: 'CUSTOMER',
+        },
+      });
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = this.generateTokens(user);
+
+    // Save refresh token
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: 900,
+      user: {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  }
 }
 
 export const authService = new AuthService();

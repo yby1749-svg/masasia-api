@@ -11,6 +11,10 @@ import {useAuthStore} from '@store/authStore';
 import {useNotificationStore} from '@store/notificationStore';
 import {notificationsApi} from '@api';
 import {socketService} from '@services/socket';
+import {configureGoogleSignIn} from './src/services/googleAuth';
+
+// Configure Google Sign-In
+configureGoogleSignIn();
 
 // Firebase push notifications - uncomment after configuring Firebase
 // import {

@@ -23,6 +23,9 @@ export const authApi = {
   register: (data: RegisterRequest) =>
     apiClient.post<{data: AuthResponse}>('/auth/register', data),
 
+  googleAuth: (idToken: string) =>
+    apiClient.post<{data: AuthResponse}>('/auth/google', {idToken}),
+
   refresh: (refreshToken: string) =>
     apiClient.post<{data: AuthResponse}>('/auth/refresh', {refreshToken}),
 

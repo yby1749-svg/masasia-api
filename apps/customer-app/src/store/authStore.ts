@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {authApi, userApi, setTokens, clearTokens, getTokens} from '@api';
 import type {User, LoginRequest, RegisterRequest} from '@types';
+import {signInWithGoogle, signOutGoogle} from '../services/googleAuth';
 
 interface AuthState {
   user: User | null;
@@ -10,6 +11,7 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   login: (data: LoginRequest) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
@@ -58,6 +60,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  loginWithGoogle: async () => {
+    set({isLoading: true});
+    try {
+      // Get Google ID token
+      const googleResult = await signInWithGoogle();
+
+      // Send to backend for verification
+      const response = await authApi.googleAuth(googleResult.idToken);
+      const {accessToken, refreshToken, user} = response.data.data;
+      await setTokens({accessToken, refreshToken});
+      set({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({isLoading: false});
+      throw error;
+    }
+  },
+
   register: async (data: RegisterRequest) => {
     set({isLoading: true});
     try {
@@ -78,6 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await authApi.logout();
+      await signOutGoogle();
     } catch {
       // Ignore logout errors
     }

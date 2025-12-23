@@ -19,6 +19,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import {Button, Input} from '@components';
 import {useAuthStore, useUIStore} from '@store';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {
   colors,
   typography,
@@ -39,9 +40,26 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const {login, isLoading} = useAuthStore();
+  const {login, loginWithGoogle, isLoading} = useAuthStore();
   const {showError} = useUIStore();
   const [showPassword, setShowPassword] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+    } catch (error: any) {
+      if (error.message !== 'Sign in cancelled') {
+        showError(
+          'Google Sign-In Failed',
+          error.response?.data?.message || error.message || 'Please try again',
+        );
+      }
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   const {
     control,
@@ -152,6 +170,28 @@ export function LoginScreen() {
                 fullWidth
                 icon="log-in-outline"
               />
+
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={handleGoogleSignIn}
+                disabled={isGoogleLoading || isLoading}>
+                {isGoogleLoading ? (
+                  <Text style={styles.googleButtonText}>Signing in...</Text>
+                ) : (
+                  <>
+                    <Icon name="logo-google" size={20} color="#DB4437" />
+                    <Text style={styles.googleButtonText}>
+                      Continue with Google
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -263,5 +303,37 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '700',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.md,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  googleButtonText: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '600',
+    marginLeft: spacing.sm,
   },
 });

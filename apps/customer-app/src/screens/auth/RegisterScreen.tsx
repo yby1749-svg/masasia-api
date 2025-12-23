@@ -17,7 +17,8 @@ import {z} from 'zod';
 
 import {Button, Input, Captcha} from '@components';
 import {useAuthStore, useUIStore} from '@store';
-import {colors, typography, spacing} from '@config/theme';
+import {colors, typography, spacing, borderRadius} from '@config/theme';
+import Icon from 'react-native-vector-icons/Ionicons';
 import type {AuthStackParamList} from '@navigation';
 
 const registerSchema = z
@@ -40,10 +41,28 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 export function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const {register, isLoading} = useAuthStore();
+  const {register, loginWithGoogle, isLoading} = useAuthStore();
   const {showError, showSuccess} = useUIStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+      showSuccess('Welcome!', 'Your account has been created successfully');
+    } catch (error: any) {
+      if (error.message !== 'Sign in cancelled') {
+        showError(
+          'Google Sign-In Failed',
+          error.response?.data?.message || error.message || 'Please try again',
+        );
+      }
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   const {
     control,
@@ -217,6 +236,28 @@ export function RegisterScreen() {
               disabled={!isCaptchaVerified}
               style={styles.button}
             />
+
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignIn}
+              disabled={isGoogleLoading || isLoading}>
+              {isGoogleLoading ? (
+                <Text style={styles.googleButtonText}>Signing up...</Text>
+              ) : (
+                <>
+                  <Icon name="logo-google" size={20} color="#DB4437" />
+                  <Text style={styles.googleButtonText}>
+                    Continue with Google
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
@@ -283,5 +324,37 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.md,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  googleButtonText: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '600',
+    marginLeft: spacing.sm,
   },
 });

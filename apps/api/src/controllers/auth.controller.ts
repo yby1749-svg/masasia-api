@@ -189,3 +189,22 @@ export const verifyEmail = async (
     next(error);
   }
 };
+
+// Google OAuth login
+const googleAuthSchema = z.object({
+  idToken: z.string().min(1, 'Google ID token is required'),
+});
+
+export const googleLogin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data = googleAuthSchema.parse(req.body);
+    const result = await authService.googleAuth(data.idToken);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
